@@ -1,0 +1,45 @@
+# comment out for stable
+cargo-features = ["codegen-backend"]
+
+[package]
+name = "server"
+version = "0.1.0"
+edition = "2021"
+
+# cargo +nightly build --profile=fast-dev-linux
+[profile.fast-dev-linux]
+inherits = "dev"
+opt-level = 0
+debug = 0
+strip = "debuginfo"
+lto = false
+codegen-units = 256
+incremental = true
+codegen-backend = "cranelift"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+axum = "0.7.4"
+axum-macros = "0.4.1"
+chrono = "0.4.34"
+config = "0.14.0"
+http-body-util = "0.1.0"
+lettre = { version = "0.11.4", features = ["tracing", "tokio1", "tokio1-native-tls"] }
+once_cell = "1.19.0"
+rand = "0.8.5"
+reqwest = "0.12.1"
+serde = { version = "1.0.196", features = ["derive"] }
+tokio = { version = "1.36.0", features = ["full"] }
+tokio-util = "0.7.10"
+tower = { version = "0.4.13", features = ["util"] }
+tower-http = { version = "0.5.1", features = ["fs", "trace"] }
+tower-sessions = "0.10.2"
+tracing = "0.1.40"
+tracing-appender = "0.2.3"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
