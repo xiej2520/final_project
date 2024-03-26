@@ -120,7 +120,8 @@ pub async fn search_handler(
         searchTerm: search_term,
     }): Json<SearchParams>,
 ) -> Response {
-    let search_term = format!("%{search_term}%");
+    //let search_term = format!("%{search_term}%");
+    if only_in_box {
     match bbox {
         Some(BoundingBox {
             minLat,
@@ -130,6 +131,7 @@ pub async fn search_handler(
         }) => {
             // find any term containing it
             let store = store.lock().await;
+            tracing::info!("ONly in box, bbox");
             const BBOX_SQL_QUERY: &str = r#"
 WITH transformed_bbox AS (
     SELECT ST_Transform(ST_MakeEnvelope($1, $2, $3, $4, 4326), 3857) AS bbox
@@ -154,7 +156,6 @@ FROM (
     ) AS relevant_tables, transformed_bbox
     WHERE 
         way && transformed_bbox.bbox
-        AND name IS NOT NULL
 ) AS intersection_query, transformed_bbox
 WHERE NOT ST_IsEmpty(intersection_geom)
 ORDER BY 
@@ -173,32 +174,29 @@ LIMIT 30;
         None => {
             let store = store.lock().await;
 
+            Json(Vec::<InBBoxObject>::new()).into_response()
+        }
+    }
+    } else {
+            let store = store.lock().await;
             const ANYWHERE_SQL_QUERY: &str = r#"
-SELECT
+SELECT 
     name,
-    ST_Y(ST_Transform(centroid, 4326)) AS centroidLat,
-    ST_X(ST_Transform(centroid, 4326)) AS centroidLon,
-    ST_YMin(bbox) AS minLat,
-    ST_XMin(bbox) AS minLon,
-    ST_YMax(bbox) AS maxLat,
-    ST_XMax(bbox) AS maxLon
+    ST_Y(ST_Transform(ST_Centroid(way), 4326)) AS centroidLat,
+    ST_X(ST_Transform(ST_Centroid(way), 4326)) AS centroidLon,
+    ST_YMin(ST_Transform(ST_Envelope(way), 4326)) AS minLat,
+    ST_XMin(ST_Transform(ST_Envelope(way), 4326)) AS minLon,
+    ST_YMax(ST_Transform(ST_Envelope(way), 4326)) AS maxLat,
+    ST_XMax(ST_Transform(ST_Envelope(way), 4326)) AS maxLon
 FROM (
-    SELECT 
-        name,
-        ST_Transform(ST_Envelope(ST_Collect(way)), 4326) AS bbox,
-        ST_Centroid(ST_Collect(way)) AS centroid
-    FROM (
-        (SELECT name, way FROM planet_osm_polygon WHERE name LIKE $1 LIMIT 30)
-        UNION
-        (SELECT name, way FROM planet_osm_line WHERE name LIKE $1 LIMIT 30)
-        UNION
-        (SELECT name, way FROM planet_osm_roads WHERE name LIKE $1 LIMIT 30)
-        UNION
-        (SELECT name, way FROM planet_osm_point WHERE name LIKE $1 LIMIT 30)
+    SELECT name, way FROM planet_osm_polygon WHERE name LIKE $1
+    UNION ALL
+    SELECT name, way FROM planet_osm_line WHERE name LIKE $1
+    UNION ALL
+    SELECT name, way FROM planet_osm_roads WHERE name LIKE $1
+    UNION ALL
+    SELECT name, way FROM planet_osm_point WHERE name LIKE $1
 ) AS relevant_tables
-    GROUP BY 
-        name
-) AS search_query
 LIMIT 30;
             "#;
             let stmt = store.client.prepare(ANYWHERE_SQL_QUERY).await.expect("Failed to prepare some bounding box SQL query");
@@ -207,6 +205,6 @@ LIMIT 30;
             
             let objs: Vec<_> = rows.into_iter().map(AnywhereObject::from).collect();
             Json(objs).into_response()
-        }
+        
     }
 }

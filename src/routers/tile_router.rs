@@ -27,10 +27,10 @@ pub async fn tile_handler(
     let y = v;
     let x: i32 = h.split(".").next().unwrap_or(&h).parse().unwrap_or(1);
     // SWAP V/H TO X/Y
-    // Assignment wants tiles/$LAYER/$V/$H.png
-    // tile server wants tile/{z}/{x}/{y}.png
-    let url = format!("http://127.0.0.1:8080/tile/{layer}/{x}/{y}.png");
-    tracing::info!("{url}");
+    ////////No it doesn't?// Assignment wants tiles/$LAYER/$V/$H.png
+    ////////No it doesn't?// tile server wants tile/{z}/{x}/{y}.png
+    let url = format!("http://127.0.0.1:8080/tile/{layer}/{y}/{x}.png");
+    //tracing::info!("{url}");
     let response = reqwest::get(url).await.unwrap();
 
     Response::new(Body::from(response.bytes().await.unwrap()))

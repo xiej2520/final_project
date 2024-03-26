@@ -18,6 +18,8 @@ tr:nth-child(even) { background-color: #f2f2f2; }
 tr:hover { background-color: #ddd; }
 
 #search-map {
+  background-color: #331133;
+  color: white;
   display: flex;
   height: 800px;
 }
@@ -54,14 +56,14 @@ html, body {
 </head>
 
 <body>
-  <form id="search-form" action="/search" method="POST">
+  <form id="search-form" action="/api/search" method="POST">
     <input type="text" id="bbox" name="bbox" value='{"minLat":40.908925,"minLon":-73.135909,"maxLat":40.927442,"maxLon":-73.109216}'>
     <input type="searchTerm" id="searchTerm" name="searchTerm" value="Stony Brook University" required>
     <input type="submit" value="Search">
   </form>
   <form id="convert-form" action="/convert" method="POST">
-    <input type="number" id="lat" name="lat" min="-90" max="90" step="0.01" value="40.74">
-    <input type="number" id="long" name="long" min="-180" max="180" step="0.01" value="-73.98">
+    <input type="number" id="lat" name="lat" min="-90" max="90" step="0.00000000000000001" value="40.74">
+    <input type="number" id="long" name="long" min="-180" max="180" step="0.00000000000000001" value="-73.98">
     <input type="number" id="zoom" name="zoom" min="1" max="18" value="9">
     <input type="submit" value="Convert">
   </form>
@@ -76,7 +78,7 @@ html, body {
   <script>
     var map = L.map('map').setView([0, 0], 3);
 
-    L.tileLayer('/tiles/{z}/{y}/{x}.png', {
+    L.tileLayer('/tiles/{z}/{x}/{y}.png', {
       maxZoom: 18,
       attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>',
       id: 'base'
@@ -192,7 +194,7 @@ form.onsubmit = (event) => {
     const json = await response.json();
     console.log(json);
     let t = JSON.stringify(json);
-    let row = `<tr><td>${t}<br/>zoom=${data.zoom}</td><td><img src="/tiles/${data.zoom}/${json.y_tile}/${json.x_tile}.png" width="75%" height="auto"/></td></tr>`;
+    let row = `<tr><td>${t}<br/>zoom=${data.zoom}</td><td><img src="/tiles/${data.zoom}/${json.x_tile}/${json.y_tile}.png" width="75%" height="auto"/></td></tr>`;
     document.getElementById("responses").innerHTML += row;
   }
   )

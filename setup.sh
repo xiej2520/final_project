@@ -61,12 +61,15 @@ mkdir /data
 cp static/new-york.osm.pbf /data/new-york.osm.pbf
 
 # https://github.com/Overv/openstreetmap-tile-server/blob/master/README.md
-docker volume create osm-data
+docker volume create osm-datadocker volume create osm-tiles
+docker volume create osm-tiles
 docker run \
     -p 8080:80 \
     -p 5432:5432 \
     -v /data/new-york.osm.pbf:/data/region.osm.pbf \
     -v osm-data:/data/database/ \
+    -v osm-tiles:/data/tiles/ \
+     --shm-size="3gb" \
     overv/openstreetmap-tile-server \
     import
 
@@ -74,5 +77,7 @@ docker run \
     -p 8080:80 \
     -p 5432:5432 \
     -v osm-data:/data/database/ \
+    -v osm-tiles:/data/tiles/ \
+     --shm-size="3gb" \
     -d overv/openstreetmap-tile-server \
     run

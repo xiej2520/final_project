@@ -105,7 +105,7 @@ async fn main() {
             convert_router::new_router(),
         )
         .nest(
-            "/search",
+            "/api/search",
             search_router::new_router().with_state(server_state.clone()),
         )
         .layer(axum::middleware::from_fn(append_headers))
