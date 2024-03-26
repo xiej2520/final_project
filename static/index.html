@@ -3,7 +3,54 @@
 
 <head>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <style>
+table {
+  font-family: Arial, Helvetica, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+}
+td {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+tr:nth-child(even) { background-color: #f2f2f2; }
+tr:hover { background-color: #ddd; }
+
+#search-map {
+  display: flex;
+  height: 800px;
+}
+
+.search-results {
+  width: 25%;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  padding: 10px;
+}
+
+.result-item {
+  cursor: pointer;
+  padding: 5px;
+  border-bottom: 1px solid #eee;
+}
+
+.result-item:hover {
+  background-color: #f5f5f5;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+#map {
+  width: 75%;
+  height: 800px;
+  padding: 0;
+}
+  </style>
 </head>
 
 <body>
@@ -18,101 +65,14 @@
     <input type="number" id="zoom" name="zoom" min="1" max="18" value="9">
     <input type="submit" value="Convert">
   </form>
-  <form id="adduser-form" action="/adduser" method="POST">
-    <input type="text" id="username" name="username" value="username" required>
-    <input type="password" id="password" name="password" value="password" required>
-    <input type="email" id="email" name="email" value="username@password.com" required>
-    <input type="submit" value="Add User">
-  </form>
-  <form id="login-form" action="/login" method="POST">
-    <input type="text" id="login-username" name="username" value="username" required>
-    <input type="password" id="login-password" name="password" value="password" required>
-    <input type="submit" value="Login">
-  </form>
-  <form id="logout-form" action="/logout" method="POST">
-    <input type="submit" value="Logout">
-  </form>
-  <form>
-    <input type="radio" id="color" name="style" value="Color" checked />
-    <label for="color">Color</label>
-    <input type="radio" id="bw" name="style" value="Black and White" />
-    <label for="bw">Black and White</label>
-  </form>
-  <img id="convert-img"/>
-  <table>
-    <tbody id="responses"></tbody>
-  </table>
-  <script>
-    function add_hook(id) {
-      const form = document.getElementById(id);
-      form.onsubmit = (event) => {
-        event.preventDefault();
-        const formData = new FormData(form);
-        let data = Object.fromEntries(formData);
-        if (data.bbox != null) {
-          if (data.bbox != "") {
-            data.bbox.replace("\\\"", "\"");
-            data.bbox = JSON.parse(data.bbox);
-            data.onlyInBox = true;
-          } else {
-            data.bbox = null;
-            data.onlyInBox = false;
-          }
-        }
-        if (data.lat != null) { data.lat = Number(data.lat); }
-        if (data.long != null) { data.long = Number(data.long); }
-        if (data.zoom != null) { data.zoom = Number(data.zoom); }
-        console.log(data);
-        fetch(form.action, {
-          method: 'POST',
-          headers: new Headers({ 'content-type': 'application/json' }),
-          body: JSON.stringify(data)
-        })
-          .then(async response => {
-            const json = await response.json();
-            console.log(json);
-            if (json.x_tile != null) {
-              document.getElementById("convert-img").src = `/tiles/${
-                document.getElementById("zoom").value
-              }/${json.y_tile}/${json.x_tile}.png`;
-            }
-            let t = JSON.stringify(json);
-            let row = `<tr><td>${t}</td>`;
 
-            if (json.message.includes("url=")) {
-              row += `<td><a target="_blank" href=${json.message.split("url=")[1]}>Verify</a>
-                </td>`;
-            }
-            row += `</tr>`;
-            document.getElementById("responses").innerHTML += row;
-          }
-          )
-          .catch(error => {
-            document.getElementById("responses").innerHTML +=
-              `<tr><td>${JSON.stringify(error)}</td></tr>`
-          }
-          )
-      };
-    }
-    add_hook("search-form");
-    add_hook("convert-form");
-    add_hook("adduser-form");
-    add_hook("login-form");
-    add_hook("logout-form");
-  </script>
+  <div id="search-map">
+    <div class="search-results">
+      <ul id="results-list"></ul>
+    </div> 
+    <div id="map"></div>
+  </div>
 
-  <div id="map"></div>
-
-  <style>
-    html,
-    body,
-    #map {
-      width: 100%;
-      height: 100%;
-      margin: 0;
-      padding: 0;
-    }
-  </style>
   <script>
     var map = L.map('map').setView([0, 0], 3);
 
@@ -121,7 +81,130 @@
       attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>',
       id: 'base'
     }).addTo(map);
+    var markerGroup = L.layerGroup().addTo(map);
+
+    function onMapClick(e) {
+      var popup = L.popup();
+      console.log(e.latlng);
+    popup
+        .setLatLng(e.latlng)
+        .setContent("You clicked the map at " + e.latlng.toString())
+        .openOn(map);
+    }
+
+    map.on('click', onMapClick);
   </script>
+
+  <img id="convert-img"/>
+  <table>
+    <tbody id="responses"></tbody>
+  </table>
+  <script>
+function renderResults(results) {
+  let resultList = document.getElementById("results-list");
+  resultList.innerHTML = ''; // Clear previous results
+  
+  results.forEach((result, index) => {
+    const listItem = document.createElement('li');
+    listItem.classList.add('result-item');
+    listItem.textContent = result.name;
+    listItem.addEventListener('click', () => {
+      // Handle onclick event (e.g., display coordinates)
+      map.setView(L.latLng(result.coordinates), map.getZoom(), { animation: true });
+      console.log('Clicked on:', result.name);
+      console.log('Coordinates:', result.coordinates);
+    });
+    resultList.appendChild(listItem);
+  });
+}
+(() => {
+const form = document.getElementById("search-form");
+form.onsubmit = (event) => {
+  event.preventDefault();
+  const formData = new FormData(form);
+  let data = Object.fromEntries(formData);
+  if (data.bbox != "") {
+    data.bbox.replace("\\\"", "\"");
+    data.bbox = JSON.parse(data.bbox);
+    data.onlyInBox = true;
+  } else {
+    data.bbox = null;
+    data.onlyInBox = false;
+  }
+  console.log(data);
+  fetch(form.action, {
+    method: 'POST',
+    headers: new Headers({ 'content-type': 'application/json' }),
+    body: JSON.stringify(data)
+  })
+  .then(async response => {
+    const json = await response.json();
+    console.log("JSON is", json);
+    let t = JSON.stringify(json);
+    let row = `<tr><td>${t}</td></tr>`;
+    document.getElementById("responses").innerHTML += row;
+
+    renderResults(json);
+    markerGroup.clearLayers();
+
+    for (const result of json) {
+      L.marker(result.coordinates).addTo(markerGroup)
+      .bindPopup(`${result.name}<br/>Lat: ${result.coordinates.lat}<br/>Lon: ${result.coordinates.lon}`);
+    }
+    if (data.bbox == null) {
+      if (json.length == 1) {
+        let LL = L.latLng(json[0].coordinates.lat, json[0].coordinates.lon);
+        map.setView(LL, map.getZoom(), { animation: true });
+      }
+    } else {
+      L.marker({lat: data.bbox.minLat, lon: data.bbox.minLon}, {icon: L.divIcon({className: 'bbox', html: '<b>⌞</b>'})}).addTo(markerGroup).bindPopup(`BBox NW<br/>Lat: ${data.bbox.minLat}<br/>Lon: ${data.bbox.minLon}`);
+      L.marker({lat: data.bbox.minLat, lon: data.bbox.maxLon}, {icon: L.divIcon({className: 'bbox', html: '<b>⌟</b>'})}).addTo(markerGroup).bindPopup(`BBox SE<br/>Lat: ${data.bbox.minLat}<br/>Lon: ${data.bbox.maxLon}`);
+      L.marker({lat: data.bbox.maxLat, lon: data.bbox.maxLon}, {icon: L.divIcon({className: 'bbox', html: '<b>⌝</b>'})}).addTo(markerGroup).bindPopup(`BBox NE<br/>Lat: ${data.bbox.maxLat}<br/>Lon: ${data.bbox.maxLon}`);
+      L.marker({lat: data.bbox.maxLat, lon: data.bbox.minLon}, {icon: L.divIcon({className: 'bbox', html: '<b>⌜</b>'})}).addTo(markerGroup).bindPopup(`BBox NW<br/>Lat: ${data.bbox.maxLat}<br/>Lon: ${data.bbox.minLon}`);
+    }
+  }
+  )
+  .catch(error => {
+    console.log(error);
+    document.getElementById("responses").innerHTML +=
+      `<tr><td>ERROR: ${JSON.stringify(error)}</td></tr>`
+  })
+};
+})();
+  </script>
+  <script>
+(() => {
+const form = document.getElementById("convert-form");
+form.onsubmit = (event) => {
+  event.preventDefault();
+  const formData = new FormData(form);
+  let data = Object.fromEntries(formData);
+  data.lat = Number(data.lat);
+  data.long = Number(data.long);
+  data.zoom = Number(data.zoom);
+  console.log(data);
+  fetch(form.action, {
+    method: 'POST',
+    headers: new Headers({ 'content-type': 'application/json' }),
+    body: JSON.stringify(data)
+  })
+  .then(async response => {
+    const json = await response.json();
+    console.log(json);
+    let t = JSON.stringify(json);
+    let row = `<tr><td>${t}<br/>zoom=${data.zoom}</td><td><img src="/tiles/${data.zoom}/${json.y_tile}/${json.x_tile}.png" width="75%" height="auto"/></td></tr>`;
+    document.getElementById("responses").innerHTML += row;
+  }
+  )
+  .catch(error => {
+    console.log(error);
+    document.getElementById("responses").innerHTML +=
+      `<tr><td>ERROR: ${JSON.stringify(error)}</td></tr>`
+  })
+};
+})();
+  </script>
+
 </body>
 
 </html>

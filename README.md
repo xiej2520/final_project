@@ -107,7 +107,8 @@ WITH transformed_bbox AS (
 )
 SELECT name,
        ST_Y(ST_Transform(ST_Centroid(intersection_geom), 4326)) AS lat,
-       ST_X(ST_Transform(ST_Centroid(intersection_geom), 4326)) AS lon
+       ST_X(ST_Transform(ST_Centroid(intersection_geom), 4326)) AS lon,
+       ST_Distance(ST_Centroid(intersection_geom), ST_Centroid(transformed_bbox.bbox)) AS distance_to_center
 FROM (
     SELECT planet_osm_polygon.name,
            ST_Intersection(planet_osm_polygon.way, transformed_bbox.bbox) AS intersection_geom
@@ -115,9 +116,10 @@ FROM (
     WHERE 
       planet_osm_polygon.way && transformed_bbox.bbox
       AND name IS NOT NULL
-) AS intersection_query
+) AS intersection_query, transformed_bbox
 WHERE NOT ST_IsEmpty(intersection_geom)
 -- AND NAME = 'Stony Brook University'
+ORDER BY distance_to_center;
 LIMIT 5000;
 ```
 
@@ -134,13 +136,18 @@ SELECT
     ST_XMax(bbox) AS maxLon
 FROM (
     SELECT 
-        planet_osm_polygon.name,
+        name,
         ST_Transform(ST_Envelope(ST_Collect(way)), 4326) AS bbox,
         ST_Centroid(ST_Collect(way)) AS centroid
-    FROM 
-        planet_osm_polygon
-    WHERE 
-        name = 'Stony Brook University'
+    FROM (
+        (SELECT name, way FROM planet_osm_polygon LIMIT 30)
+        UNION
+        (SELECT name, way FROM planet_osm_line LIMIT 30)
+        UNION
+        (SELECT name, way FROM planet_osm_roads LIMIT 30)
+        UNION
+        (SELECT name, way FROM planet_osm_point LIMIT 30)
+    ) AS relevant_tables
     GROUP BY 
         name
 ) AS search_query
