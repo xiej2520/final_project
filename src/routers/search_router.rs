@@ -157,7 +157,6 @@ FROM (
         AND name IS NOT NULL
 ) AS intersection_query, transformed_bbox
 WHERE NOT ST_IsEmpty(intersection_geom)
-GROUP BY name, lat, lon
 ORDER BY 
     distance_to_center
 LIMIT 30;
