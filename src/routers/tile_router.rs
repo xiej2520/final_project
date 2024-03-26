@@ -24,9 +24,13 @@ pub async fn tile_handler(
     Path((layer, v, h)): Path<(i32, i32, String)>,
 ) -> Response {
     // ignore .jpg
-    //let h: i32 = h.split(".").next().unwrap_or(&h).parse().unwrap_or(1);
-    let url = format!("http://127.0.0.1:8080/tile/{layer}/{v}/{h}");
-    tracing::info!("http://127.0.0.1:8080/tile/{layer}/{v}/{h}");
+    let y = v;
+    let x: i32 = h.split(".").next().unwrap_or(&h).parse().unwrap_or(1);
+    // SWAP V/H TO X/Y
+    // Assignment wants tiles/$LAYER/$V/$H.png
+    // tile server wants tile/{z}/{x}/{y}.png
+    let url = format!("http://127.0.0.1:8080/tile/{layer}/{x}/{y}.png");
+    tracing::info!("{url}");
     let response = reqwest::get(url).await.unwrap();
 
     Response::new(Body::from(response.bytes().await.unwrap()))

@@ -43,10 +43,11 @@ pub async fn convert_handler(
     }): Json<ConvertParams>,
 ) -> Response {
     let n = (2 << (zoom as i32 - 1)) as f64;
+    // round down is correct
     let x_tile = (n * (long + 180.0) / 360.0) as i32;
     
     let lat_rad = lat * PI / 180.0;
-    let y_tile = (n * ((1.0 - lat_rad.tan().ln() + (1.0 / lat_rad.cos())) / PI) / 2.0) as i32;
+    let y_tile = (n * (1.0 - (lat_rad.tan() + (1.0 / lat_rad.cos())).ln() / PI) / 2.0) as i32;
     
 
     Json(ConvertResponse{x_tile, y_tile}).into_response()
