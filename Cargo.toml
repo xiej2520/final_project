@@ -10,8 +10,8 @@ edition = "2021"
 [profile.fast-dev-linux]
 inherits = "dev"
 opt-level = 0
-debug = 0
-strip = "debuginfo"
+#debug = 0
+#strip = "debuginfo"
 lto = false
 codegen-units = 256
 incremental = true
@@ -27,6 +27,7 @@ panic = "abort"
 [dependencies]
 axum = "0.7.4"
 axum-macros = "0.4.1"
+axum_typed_multipart = "0.11.0"
 chrono = "0.4.34"
 config = "0.14.0"
 http-body-util = "0.1.0"
@@ -35,7 +36,9 @@ once_cell = "1.19.0"
 rand = "0.8.5"
 reqwest = "0.12.1"
 serde = { version = "1.0.196", features = ["derive"] }
+serde_json = "1.0.114"
 tokio = { version = "1.36.0", features = ["full"] }
+tokio-postgres = "0.7.10"
 tokio-util = "0.7.10"
 tower = { version = "0.4.13", features = ["util"] }
 tower-http = { version = "0.5.1", features = ["fs", "trace"] }

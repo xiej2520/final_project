@@ -38,16 +38,16 @@ cargo build
 wget -P static https://grading.cse356.compas.cs.stonybrook.edu/data/new-york.osm.pbf
 sudo apt install osm2pgsql
 
-# Start PostGIS
-docker run --name some-postgis -e POSTGRES_PASSWORD=mysecretpassword -d -p 5432:5432 postgis/postgis
-
-docker exec --user postgres some-postgis psql -c "CREATE DATABASE osm;"
-docker exec --user postgres some-postgis psql osm -c "CREATE EXTENSION postgis;"
-docker exec --user postgres some-postgis psql osm -c "CREATE EXTENSION postgis_raster;"
-#docker exec -ti some-postgis psql -U postgres
-#osm2pgsql -c -d osm -W -H 127.0.0.1 -P 5432 -U postgres static/new-york.osm.pbf
-# enter password 'mysecretpassword'
-osm2pgsql -c postgresql://postgres:mysecretpassword@127.0.0.1:5432/osm static/new-york.osm.pbf
+## Start PostGIS
+#docker run --name some-postgis -e POSTGRES_PASSWORD=mysecretpassword -d -p 5432:5432 postgis/postgis
+#
+#docker exec --user postgres some-postgis psql -c "CREATE DATABASE osm;"
+#docker exec --user postgres some-postgis psql osm -c "CREATE EXTENSION postgis;"
+#docker exec --user postgres some-postgis psql osm -c "CREATE EXTENSION postgis_raster;"
+##docker exec -ti some-postgis psql -U postgres
+##osm2pgsql -c -d osm -W -H 127.0.0.1 -P 5432 -U postgres static/new-york.osm.pbf
+## enter password 'mysecretpassword'
+#osm2pgsql -c postgresql://postgres:mysecretpassword@127.0.0.1:5432/osm static/new-york.osm.pbf
 
 #sudo apt install libmapnik-dev mapnik-utils python3-mapnik
 #
@@ -61,7 +61,11 @@ osm2pgsql -c postgresql://postgres:mysecretpassword@127.0.0.1:5432/osm static/ne
 mkdir /data
 cp static/new-york.osm.pbf /data/new-york.osm.pbf
 
+# https://github.com/Overv/openstreetmap-tile-server/blob/master/README.md
+docker volume create osm-data
 docker run \
+    -p 8080:80 \
+    -p 5432:5432 \
     -v /data/new-york.osm.pbf:/data/region.osm.pbf \
     -v osm-data:/data/database/ \
     overv/openstreetmap-tile-server \
@@ -69,6 +73,7 @@ docker run \
 
 docker run \
     -p 8080:80 \
+    -p 5432:5432 \
     -v osm-data:/data/database/ \
     -d overv/openstreetmap-tile-server \
     run

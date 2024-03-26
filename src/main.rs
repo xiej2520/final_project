@@ -7,7 +7,7 @@ use once_cell::sync::Lazy;
 use axum::{
     body::{Body, Bytes},
     http::StatusCode,
-    response::Response, 
+    response::Response,
     Router,
 };
 use axum::{extract::Request, middleware::Next};
@@ -16,6 +16,7 @@ use chrono::Local;
 use http_body_util::BodyExt;
 
 use tokio::sync::Mutex;
+use tokio_postgres::NoTls;
 use tracing_subscriber::fmt;
 use tracing_subscriber::layer::SubscriberExt;
 
@@ -55,6 +56,25 @@ static CONFIG: Lazy<ServerConfig> = Lazy::new(|| {
     })
 });
 
+pub struct ServerState {
+    client: tokio_postgres::Client,
+}
+impl ServerState {
+    pub async fn new() -> Self {
+        let (client, connection) =
+        //host=/var/lib/postgresql,localhost port=1234 user=postgres password='password with spaces'
+            //tokio_postgres::connect("postgresql://renderer:renderer@localhost:5432/gis", NoTls)
+            tokio_postgres::connect("host=localhost port=5432 user=renderer password=renderer dbname=gis", NoTls)
+                .await.expect("Failed to connect to postgresql server");
+        tokio::spawn(async move {
+            if let Err(e) = connection.await {
+                eprintln!("connection error: {}", e);
+            }
+        });
+        Self { client }
+    }
+}
+
 #[tokio::main]
 async fn main() {
     let file_appender =
@@ -73,12 +93,21 @@ async fn main() {
         .with_secure(false)
         .with_expiry(Expiry::OnInactivity(Duration::seconds(3600)));
 
-    let user_store = Arc::new(Mutex::new(user_controller::UserStore::default()));
+    let server_state = Arc::new(Mutex::new(ServerState::new().await));
+    //let user_store = Arc::new(Mutex::new(user_controller::UserStore::default()));
 
-    let app = Router::new() 
+    let app = Router::new()
         .nest_service("/", ServeDir::new("static"))
-        .nest("/", user_router::new_user_router().with_state(user_store.clone()))
+        //.nest("/", user_router::new_user_router().with_state(user_store.clone()))
         .nest("/tiles", tile_router::new_image_viewer_router())
+        .nest(
+            "/convert",
+            convert_router::new_router(),
+        )
+        .nest(
+            "/search",
+            search_router::new_router().with_state(server_state.clone()),
+        )
         .layer(axum::middleware::from_fn(append_headers))
         .layer(axum::middleware::from_fn(with_status_ok))
         .layer(axum::middleware::from_fn(print_request_response))
@@ -94,7 +123,8 @@ async fn main() {
 
 async fn append_headers(req: Request, next: Next) -> Response<Body> {
     let mut res = next.run(req).await;
-    res.headers_mut().insert("x-cse356", CONFIG.submission_id.parse().unwrap());
+    res.headers_mut()
+        .insert("x-cse356", CONFIG.submission_id.parse().unwrap());
     res
 }
 
