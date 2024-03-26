@@ -35,7 +35,7 @@ wget -O - "$MOLD_RELEASE" | sudo tar -C /usr/local --strip-components=1 --no-ove
 cargo build
 
 wget -P static https://grading.cse356.compas.cs.stonybrook.edu/data/new-york.osm.pbf
-sudo apt install osm2pgsql
+#sudo apt install osm2pgsql
 
 ## Start PostGIS
 #docker run --name some-postgis -e POSTGRES_PASSWORD=mysecretpassword -d -p 5432:5432 postgis/postgis
