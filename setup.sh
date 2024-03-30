@@ -15,9 +15,9 @@ MOLD_RELEASE=https://github.com/rui314/mold/releases/download/v2.30.0/mold-2.30.
 wget -O - "$MOLD_RELEASE" | sudo tar -C /usr/local --strip-components=1 --no-overwrite-dir -xzf -
 
 # build in background
-
 cargo +nightly build --profile=fast-dev-linux &
-cargo build &
+#cargo build &
+cargo build --release &
 
 # Download the data
 wget -P static https://grading.cse356.compas.cs.stonybrook.edu/data/new-york.osm.pbf

@@ -90,7 +90,11 @@ on the OpenStreetMap wiki.
 ## Solution
 
 1. Run setup.sh
+2. Create config.toml
+3. Run server
 
+
+## Notes
 
 * 4326 is lat/longitude
 * 3857 is the data's srid
