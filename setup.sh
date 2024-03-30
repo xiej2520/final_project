@@ -86,3 +86,6 @@ docker run \
 #
 
 # cargo install martin
+
+echo Run 'source \"\$HOME/.cargo/env\"'
+echo Add a config.toml to run the server
