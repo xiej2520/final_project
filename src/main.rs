@@ -100,10 +100,7 @@ async fn main() {
         .nest_service("/", ServeDir::new("static"))
         //.nest("/", user_router::new_user_router().with_state(user_store.clone()))
         .nest("/tiles", tile_router::new_image_viewer_router())
-        .nest(
-            "/convert",
-            convert_router::new_router(),
-        )
+        .nest("/convert", convert_router::new_router())
         .nest(
             "/api/search",
             search_router::new_router().with_state(server_state.clone()),

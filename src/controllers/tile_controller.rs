@@ -1,23 +1,10 @@
-pub async fn get_tile(layer: i32, v: i32, h: i32, style: &str) -> Result<Vec<u8>, String> {
-    let file_name = format!("static/tiles/l{layer}/{v}/{h}.jpg");
-    let path = std::path::Path::new(file_name.as_str());
+use axum::body::Bytes;
 
-    //let mut client = Client::connect("postgresql://postgres:mysecretpassword@127.0.0.1:5432/osm", NoTls).unwrap();
-    //let res = client.query("", &[]).unwrap();
+#[inline]
+pub async fn get_tile(layer: i32, x: i32, y: i32) -> Bytes {
+    let url = format!("http://127.0.0.1:8080/tile/{layer}/{x}/{y}.png");
 
-    let bytes = match tokio::fs::read(path).await {
-        Ok(bytes) => bytes,
-        Err(_) => return Err(format!("File '{file_name}' not found")),
-    };
+    let response = reqwest::get(url).await.unwrap();
 
-    //let img = image::load_from_memory(&bytes).unwrap();
-    //let img = if style == "bw" { img.grayscale() } else { img };
-    //let mut bytes = Vec::new();
-    //img.write_to(
-    //    &mut Cursor::new(&mut bytes),
-    //    image::ImageOutputFormat::Jpeg(95),
-    //)
-    //.unwrap();
-
-    Ok(bytes)
+    response.bytes().await.unwrap()
 }
