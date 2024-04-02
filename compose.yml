@@ -1,0 +1,17 @@
+services:
+  map:
+    image: overv/openstreetmap-tile-server
+    volumes:
+      - osm-data:/data/database/
+      - osm-tiles:/data/tiles/
+    ports:
+      - "8080:80"
+      - "5432:5432"
+    shm_size: 3G
+    command: "run"
+
+volumes:
+  osm-data:
+    external: true
+  osm-tiles: 
+    external: true

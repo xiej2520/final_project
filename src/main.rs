@@ -78,7 +78,7 @@ impl ServerState {
 #[tokio::main]
 async fn main() {
     let file_appender =
-        tracing_appender::rolling::never("./logs", Local::now().to_rfc3339().replace(':', "-"));
+        tracing_appender::rolling::never("./logs", Local::now().to_rfc3339());
     let (file_writer, _guard) = tracing_appender::non_blocking(file_appender);
     tracing::subscriber::set_global_default(
         fmt::Subscriber::builder()
