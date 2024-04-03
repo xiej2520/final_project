@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Download the data
-wget -P /data "https://grading.cse356.compas.cs.stonybrook.edu/data/new-york.osm.pbf"
+wget -P /data "https://grading.cse356.compas.cs.stonybrook.edu/data/us-northeast.osm.pbf"
 
 # Create the volumes
 docker volume create osm-data

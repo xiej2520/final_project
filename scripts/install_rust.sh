@@ -3,7 +3,7 @@ export DEBIAN_FRONTEND=noninteractive
 
 # Install dependencies
 sudo apt update
-sudo apt install build-essential libssl-dev pkg-config
+sudo apt install build-essential libssl-dev pkg-config -y
 
 # Install rust
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
