@@ -9,12 +9,6 @@ services:
       - "5432:5432"
     shm_size: 3G
     command: "run"
-  app: 
-    build: .
-    volumes:
-      - .:/usr/src/final_project
-    ports:
-      - "80:80"
 
 volumes:
   osm-data:
