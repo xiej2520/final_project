@@ -1,3 +1,10 @@
+use axum::{
+    body::Body,
+    extract::{FromRequest, Json, Request},
+    Form,
+};
+use axum_typed_multipart::{TryFromMultipart, TypedMultipart};
+
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -9,24 +16,17 @@ pub struct StatusResponse {
 impl StatusResponse {
     pub fn new_ok(message: String) -> Self {
         Self {
+            status: "ok",
             message,
-            status: "OK",
         }
     }
     pub fn new_err(message: String) -> Self {
         Self {
+            status: "error",
             message,
-            status: "ERROR",
         }
     }
 }
-
-use axum::{
-    body::Body,
-    extract::{FromRequest, Json, Request},
-    Form,
-};
-use axum_typed_multipart::{TryFromMultipart, TypedMultipart};
 
 pub async fn parse_form<T>(req: Request<Body>) -> Result<T, &'static str>
 where
