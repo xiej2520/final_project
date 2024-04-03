@@ -85,8 +85,7 @@ async fn main() {
         fmt::Subscriber::builder()
             .with_max_level(tracing::Level::DEBUG)
             .finish()
-            .with(fmt::Layer::default().with_writer(file_writer)) 
-            // .with(fmt::Layer::default().with_writer(std::io::stderr))
+            .with(fmt::Layer::default().with_writer(file_writer)), // .with(fmt::Layer::default().with_writer(std::io::stderr))
     )
     .expect("Unable to set global tracing subscriber");
 
@@ -100,7 +99,10 @@ async fn main() {
 
     let app = Router::new()
         .nest_service("/", ServeDir::new("static"))
-        .nest("/api", user_router::new_user_router().with_state(user_store.clone()))
+        .nest(
+            "/api",
+            user_router::new_user_router().with_state(user_store.clone()),
+        )
         .nest("/tiles", tile_router::new_image_viewer_router())
         .nest("/convert", convert_router::new_router())
         .nest(
