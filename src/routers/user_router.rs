@@ -73,7 +73,7 @@ async fn add_user_handler(
 async fn send_email(email: &str, key: &str) -> Result<String, String> {
     // replace '+' in email with "%2b"
     let email = email.replace('+', "%2b");
-    let verification_link = format!("http://{}/verify?email={email}&key={key}", CONFIG.domain);
+    let verification_link = format!("http://{}/api/verify?email={email}&key={key}", CONFIG.domain);
 
     let email = Message::builder()
         .from(
