@@ -15,6 +15,8 @@ services:
       - osm-data:/data/database/
     ports:
       - "5433:5432"
+    environment:
+      - POSTGRES_PASSWORD=postgres
     command: "run"
 
 volumes:
