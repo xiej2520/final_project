@@ -33,9 +33,11 @@ use routers::*;
 struct ServerConfig {
     ip: [u8; 4],
     http_port: u16,
+    domain: String,
     relay_ip: [u8; 4],
     relay_port: u16,
-    domain: String,
+    tile_server_port: u16,
+    db_url: String,
     submission_id: String,
 }
 
@@ -48,9 +50,11 @@ static CONFIG: Lazy<ServerConfig> = Lazy::new(|| {
     dbg!(ServerConfig {
         ip: config.get("ip").unwrap(),
         http_port: config.get("http_port").unwrap(),
+        domain: config.get("domain").unwrap(),
         relay_ip: config.get("relay_ip").unwrap(),
         relay_port: config.get("relay_port").unwrap(),
-        domain: config.get("domain").unwrap(),
+        tile_server_port: config.get("tile_server_port").unwrap(),
+        db_url: config.get("db_url").unwrap(),
         submission_id: config.get("submission_id").unwrap(),
     })
 });
@@ -61,12 +65,9 @@ pub struct ServerState {
 
 impl ServerState {
     pub async fn new() -> Self {
-        let (client, connection) = tokio_postgres::connect(
-            "host=localhost port=5432 user=renderer password=renderer dbname=gis",
-            NoTls,
-        )
-        .await
-        .expect("Failed to connect to postgresql server");
+        let (client, connection) = tokio_postgres::connect(&CONFIG.db_url, NoTls)
+            .await
+            .expect("Failed to connect to postgresql server");
         tokio::spawn(async move {
             if let Err(e) = connection.await {
                 eprintln!("connection error: {}", e);

@@ -121,15 +121,14 @@ pub async fn search_in_bbox(
     }: BoundingBox,
     search_term: &str,
 ) -> Result<Vec<InBBoxObject>, tokio_postgres::Error> {
-    let stmt = client
-        .prepare(BBOX_SQL_QUERY)
-        .await
-        .expect("Failed to prepare bounding box SQL query");
+    let stmt = client.prepare(BBOX_SQL_QUERY).await?;
 
     let rows = client
-        .query(&stmt, &[&min_lon, &min_lat, &max_lon, &max_lat, &search_term])
-        .await
-        .unwrap();
+        .query(
+            &stmt,
+            &[&min_lon, &min_lat, &max_lon, &max_lat, &search_term],
+        )
+        .await?;
 
     Ok(rows.into_iter().map(InBBoxObject::from).collect())
 }
@@ -159,12 +158,9 @@ pub async fn search_anywhere(
     client: &Client,
     search_term: &str,
 ) -> Result<Vec<AnywhereObject>, tokio_postgres::Error> {
-    let stmt = client
-        .prepare(ANYWHERE_SQL_QUERY)
-        .await
-        .expect("Failed to prepare anywhere SQL query");
+    let stmt = client.prepare(ANYWHERE_SQL_QUERY).await?;
 
-    let rows = client.query(&stmt, &[&search_term]).await.unwrap();
+    let rows = client.query(&stmt, &[&search_term]).await?;
 
     Ok(rows.into_iter().map(AnywhereObject::from).collect())
 }
