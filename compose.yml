@@ -1,5 +1,5 @@
 services:
-  map:
+  tiles:
     image: overv/openstreetmap-tile-server
     volumes:
       - osm-data:/data/database/
@@ -8,6 +8,13 @@ services:
       - "8080:80"
       - "5432:5432"
     shm_size: 3G
+    command: "run"
+  routing:
+    build: services/routing
+    volumes:
+      - osm-data:/data/database/
+    ports:
+      - "5433:5432"
     command: "run"
 
 volumes:
