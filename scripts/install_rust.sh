@@ -19,5 +19,5 @@ MOLD_RELEASE=https://github.com/rui314/mold/releases/download/v2.30.0/mold-2.30.
 wget -O - "$MOLD_RELEASE" | sudo tar -C /usr/local --strip-components=1 --no-overwrite-dir -xzf -
 
 # Build in background
-# cargo +nightly build --profile=fast-dev-linux &
-# cargo build --release &
+cargo +nightly build --profile=fast-dev-linux &
+cargo build --release &

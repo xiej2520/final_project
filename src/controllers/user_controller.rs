@@ -7,6 +7,9 @@ use std::{
 };
 
 use chrono::Utc;
+use lettre::{AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
+
+use crate::CONFIG;
 
 #[derive(Debug, Default)]
 pub struct UserStore {
@@ -65,22 +68,51 @@ impl UserStore {
 }
 
 impl User {
-    pub fn new(username: &str, password: &str, email: &str) -> (Self, String) {
+    pub fn new(username: &str, password: &str, email: &str) -> Self {
         let mut hasher = DefaultHasher::new();
         password.hash(&mut hasher);
         let password_hash = hasher.finish();
         Utc::now().hash(&mut hasher);
         let key = format!("{:0width$x}", hasher.finish(), width = 16);
-        (
-            Self {
-                username: username.to_owned(),
-                password_hash,
-                email: email.to_owned(),
-                key: key.clone(),
-                enabled: false,
-            },
-            key,
-        )
+        Self {
+            username: username.to_owned(),
+            password_hash,
+            email: email.replace('+', "%2b"), // replace '+' in email with "%2b"
+            key: key.clone(),
+            enabled: false,
+        }
+    }
+
+    pub async fn send_email(&self) -> Result<String, String> {
+        let verification_link = format!(
+            "http://{}/api/verify?email={}&key={}",
+            CONFIG.domain, self.email, self.key
+        );
+
+        let email = Message::builder()
+            .from(
+                "warmup2 <warmup2@cse356.compas.cs.stonybrook.edu>"
+                    .parse()
+                    .unwrap(),
+            )
+            .to(self.email.parse().unwrap())
+            .subject(verification_link.clone())
+            .body(verification_link.clone())
+            .unwrap();
+
+        let relay_ip_string = CONFIG
+            .relay_ip
+            .iter()
+            .map(|x| x.to_string())
+            .collect::<Vec<String>>()
+            .join(".");
+        let mailer = AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(&relay_ip_string)
+            .port(CONFIG.relay_port)
+            .build();
+        match mailer.send(email).await {
+            Ok(_) => Ok(verification_link),
+            Err(err) => Err(format!("Failed to send email: {}", err)),
+        }
     }
 
     pub fn matches_password(&self, password: &str) -> bool {

@@ -6,12 +6,11 @@ use axum::{
     Json, Router,
 };
 use axum_macros::debug_handler;
-use lettre::{AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 use tower_sessions::Session;
 
-use crate::{controllers::user_controller::*, CONFIG};
+use crate::controllers::user_controller::*;
 use server::StatusResponse;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -39,7 +38,7 @@ struct UserResponse {
     username: Option<String>,
 }
 
-pub fn new_user_router() -> Router<Arc<Mutex<UserStore>>> {
+pub fn new_router() -> Router<Arc<Mutex<UserStore>>> {
     Router::new()
         .route("/adduser", post(add_user_handler))
         .route("/verify", get(verify_user_handler))
@@ -57,47 +56,18 @@ async fn add_user_handler(
         email,
     }): Json<AddUserBody>,
 ) -> Json<StatusResponse> {
-    let mut store = store.lock().await;
-    let (user, key) = User::new(&username, &password, &email);
-    match store.add_user(user) {
-        Ok(()) => match send_email(&email, &key).await {
-            Ok(link) => Json(StatusResponse::new_ok(format!(
-                "User added, verification url={link}",
-            ))),
-            Err(message) => Json(StatusResponse::new_err(message)),
-        },
+    let user = User::new(&username, &password, &email);
+    match user.send_email().await {
+        Ok(link) => {
+            let mut store = store.lock().await;
+            match store.add_user(user) {
+                Ok(()) => Json(StatusResponse::new_ok(format!(
+                    "User added, verification url={link}",
+                ))),
+                Err(message) => Json(StatusResponse::new_err(message)),
+            }
+        }
         Err(message) => Json(StatusResponse::new_err(message)),
-    }
-}
-
-async fn send_email(email: &str, key: &str) -> Result<String, String> {
-    // replace '+' in email with "%2b"
-    let email = email.replace('+', "%2b");
-    let verification_link = format!("http://{}/api/verify?email={email}&key={key}", CONFIG.domain);
-
-    let email = Message::builder()
-        .from(
-            "warmup2 <warmup2@cse356.compas.cs.stonybrook.edu>"
-                .parse()
-                .unwrap(),
-        )
-        .to(email.parse().unwrap())
-        .subject(verification_link.clone())
-        .body(verification_link.clone())
-        .unwrap();
-
-    let relay_ip_string = CONFIG
-        .relay_ip
-        .iter()
-        .map(|x| x.to_string())
-        .collect::<Vec<String>>()
-        .join(".");
-    let mailer = AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(&relay_ip_string)
-        .port(CONFIG.relay_port)
-        .build();
-    match mailer.send(email).await {
-        Ok(_) => Ok(verification_link),
-        Err(err) => Err(format!("Failed to send email: {}", err)),
     }
 }
 

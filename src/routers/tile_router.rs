@@ -3,7 +3,7 @@ use axum_macros::debug_handler;
 
 use crate::tile_controller::get_tile;
 
-pub fn new_image_viewer_router() -> Router {
+pub fn new_router() -> Router {
     Router::new().route("/:layer/:v/:h", get(tile_handler))
 }
 
