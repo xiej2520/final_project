@@ -11,6 +11,8 @@ RUN apt-get update \
 && apt-get autoremove -y \
 && rm -rf /var/lib/{apt,dpkg,cache,log}/
 
+RUN adduser --disabled-password --gecos "" router
+
 COPY run.sh /
 ENTRYPOINT [ "/run.sh" ]
 CMD []

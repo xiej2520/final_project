@@ -12,7 +12,7 @@ services:
   routing:
     build: services/routing
     volumes:
-      - osm-data:/data/database/
+      - osm-routing:/data/database/
     ports:
       - "5433:5432"
     environment:
@@ -23,4 +23,6 @@ volumes:
   osm-data:
     external: true
   osm-tiles: 
+    external: true
+  osm-routing:
     external: true

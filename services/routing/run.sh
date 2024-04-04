@@ -1,6 +1,18 @@
 #!/bin/bash
 
+function setPostgresPassword() {
+    sudo -u postgres psql -c "ALTER USER router PASSWORD '${PGRPASSWORD:-router}'"
+}
+
 if [ "$1" == "import" ]; then
+    # Ensure that database directory is in right state
+    mkdir -p /data/database/postgres/
+    chown renderer: /data/database/
+    chown -R postgres: /var/lib/postgresql /data/database/postgres/
+    if [ ! -f /data/database/postgres/PG_VERSION ]; then
+        sudo -u postgres /usr/lib/postgresql/$PG_VERSION/bin/pg_ctl -D /data/database/postgres/ initdb -o "--locale C.UTF-8"
+    fi
+
     # Initialize PostgreSQL
     service postgresql start
     sudo -u postgres createuser router
@@ -8,6 +20,7 @@ if [ "$1" == "import" ]; then
     sudo -u postgres psql -d routing -c "CREATE EXTENSION postgis;"
     sudo -u postgres psql -d routing -c "CREATE EXTENSION pgrouting;"
     sudo -u postgres psql -d routing -c "ALTER TABLE spatial_ref_sys OWNER TO router;"
+    setPostgresPassword
 
     # Convert OSM to XML format
     osmconvert /data/region.osm.pbf \ 
@@ -30,6 +43,7 @@ fi
 if [ "$1" == "run" ]; then
     # Start PostgreSQL
     service postgresql start
+    setPostgresPassword
         
     # Run while handling docker stop's SIGTERM
     stop_handler() {

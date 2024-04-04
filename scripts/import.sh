@@ -4,7 +4,9 @@
 OSM_PBF_FILE="us-northeast.osm.pbf"
 wget -P /data "https://grading.cse356.compas.cs.stonybrook.edu/data/${OSM_PBF_FILE}"
 
-# Create the volumes
+###########################################################################################################
+
+# Create volumes for tiles
 docker volume create osm-data
 docker volume create osm-tiles
 
@@ -18,6 +20,11 @@ docker run \
     --shm-size="3gb" \
     overv/openstreetmap-tile-server \
     import
+
+###########################################################################################################
+
+# Create volumes for routing
+docker volume create osm-routing
 
 # Build the routing service
 docker build -t services/routing ../services/routing 
