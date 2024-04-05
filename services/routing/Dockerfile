@@ -15,7 +15,7 @@ RUN apt-get update \
 
 RUN adduser --disabled-password --gecos "" router
 
-COPY osm2pgrouting-2.3.6.zip /
+COPY osm2po.config /
 
 COPY run.sh /
 ENTRYPOINT [ "/run.sh" ]
