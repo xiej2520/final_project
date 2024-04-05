@@ -10,9 +10,9 @@ fi
 
 ###########################################################################################################
 
-# # Create volumes for tiles
-# docker volume create osm-data
-# docker volume create osm-tiles
+# Create volumes for tiles
+docker volume create osm-data
+docker volume create osm-tiles
 
 # Import the node data
 docker run \
