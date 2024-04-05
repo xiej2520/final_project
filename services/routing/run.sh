@@ -1,18 +1,12 @@
 #!/bin/bash
 
+set -euo pipefail
+
 function setPostgresPassword() {
     sudo -u postgres psql -c "ALTER USER router PASSWORD '${PGRPASSWORD:-router}'"
 }
 
 if [ "$1" == "import" ]; then
-    # Ensure that database directory is in right state
-    mkdir -p /data/database/postgres/
-    chown renderer: /data/database/
-    chown -R postgres: /var/lib/postgresql /data/database/postgres/
-    if [ ! -f /data/database/postgres/PG_VERSION ]; then
-        sudo -u postgres /usr/lib/postgresql/$PG_VERSION/bin/pg_ctl -D /data/database/postgres/ initdb -o "--locale C.UTF-8"
-    fi
-
     # Initialize PostgreSQL
     service postgresql start
     sudo -u postgres createuser router
@@ -22,20 +16,19 @@ if [ "$1" == "import" ]; then
     sudo -u postgres psql -d routing -c "ALTER TABLE spatial_ref_sys OWNER TO router;"
     setPostgresPassword
 
-    # Convert OSM to XML format
-    osmconvert /data/region.osm.pbf \ 
-        --drop-author \ 
-        --drop-version \ 
-        --out-osm -o=/data/region.osm
+    # Download osm2po (http://osm2po.de/)
+    wget -P /tmp/osm2po https://osm2po.de/releases/osm2po-5.5.11.zip
+    unzip -o /tmp/osm2po/osm2po-5.5.11.zip -d /tmp/osm2po 
+    cp /osm2po.config /tmp/osm2po/osm2po.config
 
-    # Import routing data
-    osm2pgrouting --f /data/region.osm \ 
-        --dbname routing \ 
-        --username router \ 
-        --clean    
+    # Generate topology
+    java -jar /tmp/osm2po/osm2po-core-5.5.11-signed.jar cmd=c /data/region.osm.pbf 
+
+    # Import data
+    psql -U router -d routing -q -f /tmp/osm2po/osm2po_4pgr.sql
 
     # Cleanup
-    rm -rf /data/region.osm
+    rm -rf /tmp/osm2po
     service postgresql stop
     exit 0
 fi
