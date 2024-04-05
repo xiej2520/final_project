@@ -1,0 +1,351 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+* {
+  color: white;
+  background-color: #222;
+}
+.app {
+  display: flex;
+  height: 100vh;
+}
+.tabs {
+  width: 25%;
+  min-width: 400px;
+  background-color: #333;
+  border-right: 1px solid #ccc;
+}
+
+.tab {
+  padding: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+.tab:hover {
+  background-color: #444;
+}
+
+.content {
+  width: 75%;
+  flex: 1;
+  padding: 20px;
+}
+
+.hidden {
+  display: none;
+}
+
+#convert-form label {
+  width: 125px;
+  display: inline-block;
+  text-align: left;
+}
+#convert-form input {
+  float: right;
+  border: none;
+  background-color: rgba(255, 255, 255, 0.2);
+}
+#convert-form button {
+  width: 45%;
+  background-color: #aaa;
+  border: none;
+  font-size: 16pt;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+#convert-form button:hover {
+  background-color: #b8b;
+  transition: 0.5s;
+}
+.buttons {
+  display: flex;
+  justify-content: space-between;
+}
+
+.stat-table {
+  position: fixed;
+  right: 2%;
+  background-color: rgba(0, 0, 0, 0.1);
+}
+.stat-table * {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.samples {
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+
+  height: 50px;
+  background-color: #333;
+  padding: 0;
+  margin: 0;
+}
+.samples div {
+  display: inline-block;
+  width: 50px;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-size: 10pt;
+  background-color: #444;
+  cursor: pointer;
+}
+.samples div:hover {
+  background-color: #7affd3;
+  transition: 0.5s;
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+    <div class="tabs">
+        <div class="tab" onclick="showContent('content-convert')">
+          Convert
+          <form id="convert-form">
+            <label for="convert-minlat">Min Latitude:</label>
+            <input type="number" id="convert-minlat" name="minlat" min="-90" max="90" step="0.00000000000000001" value="39">
+            <br/>
+            <label for="convert-maxlat">Max Latitude:</label>
+            <input type="number" id="convert-maxlat" name="maxlat" min="-90" max="90" step="0.00000000000000001" value="47">
+            <br/>
+            <label for="convert-minlon">Min Longitude:</label>
+            <input type="number" id="convert-minlon" name="minlon" min="-180" max="180" step="0.00000000000000001" value="-80">
+            <br/>
+            <label for="convert-maxlon">Max Longitude:</label>
+            <input type="number" id="convert-maxlon" name="maxlon" min="-180" max="180" step="0.00000000000000001" value="-64">
+            <br/>
+            <label for="convert-minzoom">Min Zoom:</label>
+            <input type="number" id="convert-minzoom" name="minzoom" min="0" max="22" value="7">
+            <br/>
+            <label for="convert-maxzoom">Max Zoom:</label>
+            <input type="number" id="convert-maxzoom" name="maxzoom" min="0" max="22" value="22">
+            <br/>
+            <div class="buttons">
+              <button type="submit" value="test-convert">Test Convert</button>
+              <button type="submit" value="test-tiles">Test Tiles</button>
+            </div>
+          </form>
+        </div>
+        <div class="tab" onclick="showContent('content-2')">Tab 2</div>
+        <div class="tab" onclick="showContent('content-3')">Tab 3</div>
+    </div>
+    <div class="content">
+        <div class="content-item" id="content-convert">
+          <div id="convert-samples" class="samples"></div>
+          <div>Remaining requests: <span id="requestsRemaining"></span></div>
+          <table id="convert-table" class="stat-table">
+            <tr> <th>Statistic</th> <th>Value</th> </tr>
+            <tr> <td>N</td> <td></td> </tr>
+            <tr> <td>Min</td> <td></td> </tr>
+            <tr> <td>Max</td> <td></td> </tr>
+            <tr> <td>Average</td> <td></td> </tr>
+            <tr> <td>Median</td> <td></td> </tr>
+            <tr> <td>90th Percentile</td> <td></td> </tr>
+            <tr> <td>95th Percentile</td> <td></td> </tr>
+            <tr> <td>99th Percentile</td> <td></td> </tr>
+          </table>
+          <canvas id="convert-chart" width="1000" height="600"></canvas>
+        </div>
+        <div class="content-item hidden" id="content-2">Content for Tab 2</div>
+        <div class="content-item hidden" id="content-3">Content for Tab 3</div>
+    </div>
+</div>
+
+<script>
+function showContent(tabId) {
+  var contentItems = document.getElementsByClassName("content-item");
+  for (var i = 0; i < contentItems.length; i++) {
+      contentItems[i].classList.add("hidden");
+  }
+  document.getElementById(tabId).classList.remove("hidden");
+}
+</script>
+
+<script>
+async function timeResponses(reqs, endpoint) {
+  const remaining = document.getElementById("requestsRemaining");
+  let numRemaining = reqs.length;
+  remaining.innerHTML = numRemaining;
+  const times = [];
+  for (const req of reqs) {
+    const start = performance.now();
+    await fetch(endpoint, {
+      method: 'POST',
+      headers: new Headers({ 'content-type': 'application/json' }),
+      body: JSON.stringify(req)
+    });
+    times.push(performance.now() - start);
+    numRemaining -= 1;
+    remaining.innerHTML = numRemaining;
+  }
+  return times;
+}
+
+function drawPlot(id, times) {
+  const rounded = times.map(time => Math.ceil(time * 2) / 2);
+  const freqMap = {};
+  rounded.forEach(v => freqMap[v] = (freqMap[v] ?? 0) + 1);
+  const freq = [];
+  Object.entries(freqMap).forEach(([k, v]) => freq.push([parseFloat(k), parseInt(v)]));
+  freq.sort((a, b) => a[0] - b[0]);
+  const x = freq.map(([bin, freq]) => bin);
+  const y = freq.map(([bin, freq]) => freq);
+
+  const getColor = (value) => `hsl(${(value <= 5) ? 120 : (value >= 50 ? 0 : (120 - ((value - 5) / (50 - 5)) * 120))}, 100%, 50%)`;
+  
+  const ctx = document.getElementById(id).getContext('2d');
+  let chartStatus = Chart.getChart("convert-chart");
+  if (chartStatus != undefined) {
+    chartStatus.destroy();
+  }
+  const plot = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: x,
+        datasets: [{
+            label: 'times',
+            data: y,
+            //backgroundColor: 'rgba(20, 20, 40, 1)',
+            backgroundColor: x.map(bin => getColor(bin)),
+            borderColor: 'rgb(75, 192, 192)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        scales: {
+            x: {
+              title: {
+                display: true,
+                text: "Time (ms)",
+              },
+              beginAtZero: true
+            },
+            y: {
+              beginAtZero: true
+            }
+        }
+    }
+  });
+}
+// times should be sorted
+function showStats(id, times) {
+  const n = times.length;
+  const min = times[0];
+  const max = times[n - 1];
+  const avg = times.reduce((acc, val) => acc + val, 0) / n;
+  const median = n % 2 === 0 ? (times[n / 2 - 1] + times[n / 2]) / 2 : times[Math.floor(n / 2)];
+  const percentile = (percent) => times[Math.ceil((percent / 100) * n) - 1];
+  const p90 = percentile(90);
+  const p95 = percentile(95);
+  const p99 = percentile(99);
+  document.getElementById(id).innerHTML = `
+<tr> <th>Statistic</th> <th>Value</th> </tr>
+<tr> <td>N</td> <td>${n}</td> </tr>
+<tr> <td>Min</td> <td>${min.toFixed(2)}</td> </tr>
+<tr> <td>Max</td> <td>${max.toFixed(2)}</td> </tr>
+<tr> <td>Average</td> <td>${avg.toFixed(2)}</td> </tr>
+<tr> <td>Median</td> <td>${median.toFixed(2)}</td> </tr>
+<tr> <td>90th Percentile</td> <td>${p90.toFixed(2)}</td> </tr>
+<tr> <td>95th Percentile</td> <td>${p95.toFixed(2)}</td> </tr>
+<tr> <td>99th Percentile</td> <td>${p99.toFixed(2)}</td> </tr>
+`;
+  }
+</script>
+
+
+<script>
+// tests for convert and tiles
+const convertTimes = [];
+const tileTimes = [];
+(() => {
+const rand = (l, h) => (Math.random() * (h - l) + l);
+const form = document.getElementById("convert-form");
+const list = document.getElementById("convert-samples");
+form.onsubmit = async (event) => {
+  event.preventDefault();
+  const formData = new FormData(form);
+  const data = Object.fromEntries(Array.from(formData).map(([k, v]) => [k, Number(v)]));
+  console.log("Form data", data);
+
+
+  if (event.submitter.value == "test-convert") {
+    const reqs = []
+    for (let i=0; i<1000; i++) {
+      reqs.push({
+        lat: rand(data.minlat, data.maxlat),
+        long: rand(data.minlon, data.maxlon),
+        zoom: parseInt(rand(data.minzoom, data.maxzoom)),
+      });
+    }
+    const times = await timeResponses(reqs, "convert");
+    times.sort();
+    drawPlot('convert-chart', times);
+    showStats('convert-table', times);
+    convertTimes.push(times);
+    const item = document.createElement("div");
+    item.innerHTML = "1000<br/>Convert";
+    const i = list.children.length;
+    item.addEventListener('click', (event) => {
+      drawPlot('convert-chart', convertTimes[i]);
+      showStats('convert-table', convertTimes[i]);
+    });
+    document.getElementById("convert-samples").appendChild(item);
+  } else if (event.submitter.value == "test-tiles") {
+    const reqs = []
+    const times = [];
+    const remaining = document.getElementById("requestsRemaining");
+    const n = 1000;
+    for (let i=0; i<n; i++) {
+      const zoom = parseInt(rand(data.minzoom, data.maxzoom));
+      const req = {
+        lat: rand(data.minlat, data.maxlat),
+        long: rand(data.minlon, data.maxlon),
+        zoom
+      };
+      const resp = await fetch("convert", {
+        method: 'POST',
+        headers: new Headers({ 'content-type': 'application/json' }),
+        body: JSON.stringify(req)
+      });
+      const json = await resp.json();
+      const start = performance.now();
+      const tileResp = await fetch(`/tiles/${zoom}/${json.x_tile}/${json.y_tile}.png`, {
+        method: 'GET',
+      });
+      times.push(performance.now() - start);
+      
+      /*
+      const imgBlob = await tileResp.blob();
+      const imgObjectURL = URL.createObjectURL(imgBlob);
+      const img = document.createElement('img');
+      img.src = imgObjectURL;
+      document.getElementById("content-convert").append(img);
+      */
+      remaining.innerHTML = n - i - 1;
+    }
+    times.sort();
+    drawPlot('convert-chart', times);
+    showStats('convert-table', times);
+    convertTimes.push(times);
+    const item = document.createElement("div");
+    item.innerHTML = `${n}<br/>Tiles`;
+    const i = list.children.length;
+    item.addEventListener('click', (event) => {
+      drawPlot('convert-chart', convertTimes[i]);
+      showStats('convert-table', convertTimes[i]);
+    });
+    document.getElementById("convert-samples").appendChild(item);
+  }
+};
+})();
+
+</script>
+
+</body>
+</html>
