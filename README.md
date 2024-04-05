@@ -4,9 +4,9 @@
 
 1. Run `./scripts/install_docker.sh` to install docker
 2. Run `./scripts/import.sh` to import data base
-3. Run `docker compose up -d` ro run database
+3. Run `docker compose up -d` to run database
 4. Run `./scripts/install_rust.sh` to install rust
-5. Run `cargo run` to run server
+5. Run `cargo run --release` to run server
 
 Make sure you have a `config.toml` in the root directory.
 
@@ -22,16 +22,19 @@ domain = "not-invented-here.cse356.compas.cs.stonybrook.edu"
 relay_ip = [130, 245, 171, 151]
 relay_port = 11587
 
-tile_server_port = 8080
+# tileserver-gl, also 512
+tile_server_url = "http://localhost:8080/styles/osm-bright/256/"
+# openstreetmap-tile-server
+#tile_server_url = "http://localhost:8080/tile/"
 
 db_url = "postgresql://renderer:renderer@localhost:5432/gis"
 
-submission_id = "foobarbooblaz1234"
+submission_id = "FIX THIS"
 ```
 
 ## Notes
 
-* 4326 is lat/longitude
+* 4326 is lat/longitude srid
 * 3857 is the data's srid
 * .way is the geometry column
 * `geometry ST_MakeEnvelope(float xmin, float ymin, float xmax, float ymax, integer srid=unknown)`

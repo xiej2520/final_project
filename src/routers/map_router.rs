@@ -81,7 +81,7 @@ pub async fn search_handler(
 pub async fn convert_handler(
     Json(ConvertParams { lat, long, zoom }): Json<ConvertParams>,
 ) -> Response {
-    let n = (2 << (zoom as i32 - 1)) as f64;
+    let n = (1 << (zoom as i32)) as f64;
     let x_tile = (n * (long + 180.0) / 360.0) as i32; // round down is correct
 
     let lat_rad = lat * PI / 180.0;

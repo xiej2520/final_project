@@ -12,7 +12,7 @@ docker volume create osm-tiles
 
 # Import the node data
 docker run \
-    -p 8080:80 \
+    -p 8081:80 \
     -p 5432:5432 \
     -v /data/${OSM_PBF_FILE}:/data/region.osm.pbf \
     -v osm-data:/data/database/ \
