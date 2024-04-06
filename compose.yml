@@ -1,27 +1,13 @@
 services:
-  # tiles:
-  #   image: overv/openstreetmap-tile-server
-  #   volumes:
-  #     - osm-data:/data/database/
-  #     - osm-tiles:/data/tiles/
-  #   ports:
-  #     - "8080:80"
-  #     - "5432:5432"
-  #   shm_size: 3G
-  #   command: "run"
-  routing:
+  database:
     image: pgrouting/pgrouting:16-3.4-3.6.1
     volumes:
-      - osm-routing:/var/lib/postgresql/data
+      - osm-data:/var/lib/postgresql/data
     ports:
-      - "5433:5432"
+      - "5432:5432"
     environment:
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
 
 volumes:
-  # osm-data:
-  #   external: true
-  # osm-tiles: 
-  #   external: true
-  osm-routing:
+  osm-data:
     external: true

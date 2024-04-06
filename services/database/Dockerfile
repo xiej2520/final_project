@@ -7,17 +7,16 @@ ENV PG_VERSION 16
 
 RUN apt-get update \
 && apt-get install -y --no-install-recommends \
-    sudo \
-    wget \
     default-jre \
+    sudo \
+    osm2pgsql \
+    wget \
     unzip \
 && apt-get clean autoclean \
 && apt-get autoremove -y \
 && rm -rf /var/lib/{apt,dpkg,cache,log}/
 
-WORKDIR /tmp/osm2po
-
-COPY osm2po.config .
+COPY osm2po.config . 
 
 COPY run.sh .
 CMD ["./run.sh"]
