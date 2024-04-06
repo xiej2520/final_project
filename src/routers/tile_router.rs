@@ -9,10 +9,9 @@ pub fn new_router() -> Router {
 
 #[debug_handler]
 pub async fn tile_handler(Path((layer, v, h)): Path<(i32, i32, String)>) -> Response {
-    // ignore .jpg
+    // ignore .jpg/.png
     let x = v;
     let y: i32 = h.split('.').next().unwrap_or(&h).parse().unwrap_or(1);
-    // SWAP V/H TO X/Y
     // Assignment wants tiles/$LAYER/$V/$H.png, which is
     // tile/{z}/{x}/{y}.png for tile server
 
