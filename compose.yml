@@ -10,14 +10,13 @@ services:
   #   shm_size: 3G
   #   command: "run"
   routing:
-    build: services/routing
+    image: pgrouting/pgrouting:16-3.4-3.6.1
     volumes:
       - osm-routing:/var/lib/postgresql/data
     ports:
       - "5433:5432"
     environment:
       - POSTGRES_PASSWORD=postgres
-    command: "run"
 
 volumes:
   # osm-data:
