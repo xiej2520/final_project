@@ -128,7 +128,8 @@
             <input type="number" id="convert-maxzoom" name="maxzoom" min="0" max="22" value="22">
             <br/>
             <div class="buttons">
-              <button type="submit" value="test-convert">Test Convert</button>
+              <button type="submit" value="test-convert-seq">Test Convert Sequential</button>
+              <button type="submit" value="test-convert-par">Test Convert Parallel</button>
               <button type="submit" value="test-tiles">Test Tiles</button>
             </div>
           </form>
@@ -169,21 +170,36 @@ function showContent(tabId) {
 </script>
 
 <script>
-async function timeResponses(reqs, endpoint) {
+async function timeResponses(reqs, endpoint, parallel) {
   const remaining = document.getElementById("requestsRemaining");
   let numRemaining = reqs.length;
   remaining.innerHTML = numRemaining;
   const times = [];
-  for (const req of reqs) {
-    const start = performance.now();
-    await fetch(endpoint, {
-      method: 'POST',
-      headers: new Headers({ 'content-type': 'application/json' }),
-      body: JSON.stringify(req)
-    });
-    times.push(performance.now() - start);
-    numRemaining -= 1;
-    remaining.innerHTML = numRemaining;
+  if (parallel) {
+    await Promise.all(reqs.map(req => (async () => {
+        const start = performance.now();
+        await fetch(endpoint, {
+          method: 'POST',
+          headers: new Headers({ 'content-type': 'application/json' }),
+          body: JSON.stringify(req)
+        });
+        times.push(performance.now() - start);
+        numRemaining--;
+        remaining.innerHTML = numRemaining;
+      })()
+    ));
+  } else {
+    for (const req of reqs) {
+      const start = performance.now();
+      await fetch(endpoint, {
+        method: 'POST',
+        headers: new Headers({ 'content-type': 'application/json' }),
+        body: JSON.stringify(req)
+      });
+      times.push(performance.now() - start);
+      numRemaining -= 1;
+      remaining.innerHTML = numRemaining;
+    }
   }
   return times;
 }
@@ -279,7 +295,7 @@ form.onsubmit = async (event) => {
   console.log("Form data", data);
 
 
-  if (event.submitter.value == "test-convert") {
+  if (event.submitter.value == "test-convert-seq") {
     const reqs = []
     for (let i=0; i<1000; i++) {
       reqs.push({
@@ -288,13 +304,35 @@ form.onsubmit = async (event) => {
         zoom: parseInt(rand(data.minzoom, data.maxzoom)),
       });
     }
-    const times = await timeResponses(reqs, "convert");
+    const times = await timeResponses(reqs, "convert", false);
     times.sort((a, b) => a - b);
     drawPlot('convert-chart', times);
     showStats('convert-table', times);
     convertTimes.push(times);
     const item = document.createElement("div");
-    item.innerHTML = "1000<br/>Convert";
+    item.innerHTML = "1000<br/>Convert<br/>Sequential";
+    const i = list.children.length;
+    item.addEventListener('click', (event) => {
+      drawPlot('convert-chart', convertTimes[i]);
+      showStats('convert-table', convertTimes[i]);
+    });
+    document.getElementById("convert-samples").appendChild(item);
+  } else if (event.submitter.value == "test-convert-par") {
+    const reqs = []
+    for (let i=0; i<1000; i++) {
+      reqs.push({
+        lat: rand(data.minlat, data.maxlat),
+        long: rand(data.minlon, data.maxlon),
+        zoom: parseInt(rand(data.minzoom, data.maxzoom)),
+      });
+    }
+    const times = await timeResponses(reqs, "convert", true);
+    times.sort((a, b) => a - b);
+    drawPlot('convert-chart', times);
+    showStats('convert-table', times);
+    convertTimes.push(times);
+    const item = document.createElement("div");
+    item.innerHTML = "1000<br/>Convert<br/>Parallel";
     const i = list.children.length;
     item.addEventListener('click', (event) => {
       drawPlot('convert-chart', convertTimes[i]);
