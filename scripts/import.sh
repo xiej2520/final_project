@@ -29,4 +29,5 @@ docker run --rm \
     -e POSTGRES_PASSWORD=postgres \
     -v /data/${REGION}.osm.pbf:/data/region.osm.pbf \
     -v osm-data:/var/lib/postgresql/data \
+    --shm-size="3gb" \
     import_database

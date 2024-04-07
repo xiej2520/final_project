@@ -16,7 +16,5 @@ RUN apt-get update \
 && apt-get autoremove -y \
 && rm -rf /var/lib/{apt,dpkg,cache,log}/
 
-COPY osm2po.config . 
-
 COPY run.sh .
 CMD ["./run.sh"]
