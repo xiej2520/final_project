@@ -10,8 +10,8 @@ pub struct BoundingBox {
     maxLon: f64,
 }
 
-#[derive(Debug, Serialize)]
-struct Coordinates {
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Coordinates {
     lat: f64,
     lon: f64,
 }
@@ -59,26 +59,23 @@ impl From<tokio_postgres::Row> for AnywhereObject {
     }
 }
 
-// idk what this even is
+#[derive(Debug, Serialize)]
+pub struct PathNodeObject {
+    description: String,
+    coordinates: Coordinates,
+}
 
-/*
-SELECT table_name FROM information_schema.tables;
-
-find objects
-SELECT name, ST_X(way) AS lon, ST_Y(way) AS lat FROM planet_osm_point WHERE name IS NOT NULL LIMIT 5;
-
-find srid
-SELECT DISTINCT ST_SRID(way) AS srid FROM planet_osm_point LIMIT 5;
-srid is 3857
-
-
-SBU NW corner 40.927442N, -73.135909W
-SBU SE corner 40.908925N, -73.109216W
-
-planet_osm_point schema
-   osm_id   | access | addr:housename | addr:housenumber | admin_level | aerialway | aeroway | amenity | barrier | boundary | building | highway | historic | junction
-| landuse | layer | leisure | lock | man_made | military | name | natural | oneway | place | power | railway | ref | religion | shop | tourism | water | waterway |
-*/
+impl From<tokio_postgres::Row> for PathNodeObject {
+    fn from(row: tokio_postgres::Row) -> Self {
+        Self {
+            description: "TODO".to_owned(),
+            coordinates: Coordinates {
+                lat: row.get(0),
+                lon: row.get(1),
+            },
+        }
+    }
+}
 
 const BBOX_SQL_QUERY: &str = r#"
     WITH transformed_bbox AS (
@@ -163,4 +160,58 @@ pub async fn search_anywhere(
     let rows = client.query(&stmt, &[&search_term]).await?;
 
     Ok(rows.into_iter().map(AnywhereObject::from).collect())
+}
+
+const ROUTE_SQL_QUERY: &str = r#"
+    SELECT lat, lon FROM pgr_dijkstra(
+        'SELECT id, 
+            source_osm AS source, target_osm AS target, 
+            cost, reverse_cost 
+        FROM osm_2po_4pgr',
+        $1, $2,
+        directed => false
+    )
+    JOIN ( SELECT id, (lat / 10000000.0) as lat, (lon / 10000000.0) as lon FROM planet_osm_nodes )
+    ON node = id;
+"#;
+
+pub async fn find_route(
+    client: &Client,
+    source: Coordinates,
+    destination: Coordinates,
+) -> Result<Vec<PathNodeObject>, tokio_postgres::Error> {
+    let stmt = client.prepare(ROUTE_SQL_QUERY).await?;
+
+    let osm_source_id= locate_osm_id(client, source).await?;
+    let osm_target_id= locate_osm_id(client, destination).await?;
+
+    let rows = client.query(&stmt, &[&osm_source_id, &osm_target_id]).await?;
+
+    Ok(rows.into_iter().map(PathNodeObject::from).collect())
+}
+
+const LOCATE_SQL_QUERY: &str = r#"
+    SELECT osm_id 
+    FROM (
+        SELECT 
+            id AS osm_id, 
+            ST_SetSRID(ST_MakePoint(lat / 10000000.0, lon / 10000000.0), 4326) AS geom 
+        FROM planet_osm_nodes
+    )
+    ORDER BY ST_Distance(
+        geom,
+        ST_SetSRID(ST_MakePoint($1, $2), 4326)
+    )
+    LIMIT 1;
+"#; 
+
+pub async fn locate_osm_id(
+    client: &Client,
+    Coordinates { lat, lon }: Coordinates,
+) -> Result<i64, tokio_postgres::Error> {
+    let stmt = client.prepare(LOCATE_SQL_QUERY).await?;
+
+    let row = client.query_one(&stmt, &[&lat, &lon]).await?;
+
+    Ok(row.get(0))
 }

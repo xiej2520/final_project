@@ -19,6 +19,7 @@ pub fn new_router() -> Router<Arc<Mutex<ServerState>>> {
     Router::new()
         .route("/api/search", post(search_handler))
         .route("/convert", post(convert_handler)) // unfortunately, not /api/convert :(
+        .route("/api/route", post(route_handler))
 }
 
 #[derive(Debug, Deserialize)]
@@ -40,6 +41,12 @@ pub struct ConvertParams {
 pub struct ConvertResponse {
     x_tile: i32,
     y_tile: i32,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RouteParams {
+    source: Coordinates,
+    destination: Coordinates,
 }
 
 #[debug_handler]
@@ -88,4 +95,22 @@ pub async fn convert_handler(
     let y_tile = (n * (1.0 - (lat_rad.tan() + (1.0 / lat_rad.cos())).ln() / PI) / 2.0) as i32;
 
     Json(ConvertResponse { x_tile, y_tile }).into_response()
+}
+
+#[debug_handler]
+pub async fn route_handler(
+    State(state): State<Arc<Mutex<ServerState>>>,
+    Json(RouteParams {
+        source,
+        destination,
+    }): Json<RouteParams>,
+) -> Response {
+    let client = &state.lock().await.client; 
+    match find_route(client, source, destination).await {
+        Ok(route) => Json(route).into_response(),
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            Json::<Vec<PathNodeObject>>(vec![]).into_response()
+        }
+    }
 }
