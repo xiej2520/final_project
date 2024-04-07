@@ -17,4 +17,6 @@ RUN apt-get update \
 && rm -rf /var/lib/{apt,dpkg,cache,log}/
 
 COPY run.sh .
+# append postgresql conf in run.sh
+COPY postgresql.conf .
 CMD ["./run.sh"]
