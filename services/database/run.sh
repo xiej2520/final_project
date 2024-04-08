@@ -2,17 +2,19 @@
 
 set -euo pipefail
 
-# Start PostgreSQL
 DB_DIR=/var/lib/postgresql/data
+
+# Start PostgreSQL
 mkdir -p $DB_DIR 
 chown -R postgres: /var/lib/postgresql
 if [ ! -f $DB_DIR/PG_VERSION ]; then
     sudo -u postgres /usr/lib/postgresql/$PG_VERSION/bin/pg_ctl -D $DB_DIR initdb -o "--locale C.UTF-8"
 fi
-echo "include = '/postgresql.conf'" >> /var/lib/postgresql/data/postgresql.conf
+mv postgresql.custom.conf $DB_DIR
+sudo -u postgres echo "include 'postgresql.custom.conf'" >> $DB_DIR/postgresql.conf
+sudo -u postgres echo "host all all 0.0.0.0/0 scram-sha-256" >> $DB_DIR/pg_hba.conf
+sudo -u postgres echo "host all all ::/0 scram-sha-256" >> $DB_DIR/pg_hba.conf
 sudo -u postgres /usr/lib/postgresql/$PG_VERSION/bin/pg_ctl -D $DB_DIR start
-
-#sudo -u postgres psql -d gis -c "SELECT pg_reload_conf();"
 
 # Create tables
 sudo -u postgres createuser carto
@@ -21,19 +23,14 @@ sudo -u postgres psql -d gis -c "CREATE EXTENSION hstore;"
 sudo -u postgres psql -d gis -c "CREATE EXTENSION postgis;"
 sudo -u postgres psql -d gis -c "CREATE EXTENSION postgis_raster;"
 sudo -u postgres psql -d gis -c "CREATE EXTENSION pgRouting;"
+sudo -u postgres psql -d gis -c "ALTER TABLE geometry_columns OWNER TO carto;"
 sudo -u postgres psql -d gis -c "ALTER TABLE spatial_ref_sys OWNER TO carto;"
 sudo -u postgres psql -c "ALTER USER carto PASSWORD '${PGPASSWORD:-carto}'"
 
 # Import osm data
-osm2pgsql -d gis -U carto --create --slim -G --hstore --number-processes ${THREADS:-4} /data/region.osm.pbf
-
-# # Create tables for routing
-# sudo -u postgres createuser router
-# sudo -u postgres createdb -E UTF8 -O router routing 
-# sudo -u postgres psql -d routing -c "CREATE EXTENSION postgis;"
-# sudo -u postgres psql -d routing -c "CREATE EXTENSION pgRouting;"
-# sudo -u postgres psql -d routing -c "ALTER TABLE spatial_ref_sys OWNER TO router;"
-# sudo -u postgres psql -c "ALTER USER router PASSWORD '${PGPASSWORD_ROUTER:-router}'"
+osm2pgsql -d gis -U carto --create --slim -G --hstore \
+  --number-processes ${THREADS:-4} \
+  /data/region.osm.pbf
 
 # Download osm2po (http://osm2po.de/)
 wget https://osm2po.de/releases/osm2po-5.5.11.zip
@@ -46,3 +43,7 @@ java -jar osm2po-core-5.5.11-signed.jar cmd=c /data/region.osm.pbf
 
 # Import routing data
 sudo -u postgres psql -U carto -d gis -q -f osm/osm_2po_4pgr.sql
+
+# Cleanup
+sudo -u postgres /usr/lib/postgresql/$PG_VERSION/bin/pg_ctl -D $DB_DIR stop 
+exit 0

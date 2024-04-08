@@ -16,7 +16,7 @@ RUN apt-get update \
 && apt-get autoremove -y \
 && rm -rf /var/lib/{apt,dpkg,cache,log}/
 
+COPY postgresql.custom.conf . 
+
 COPY run.sh .
-# append postgresql conf in run.sh
-COPY postgresql.conf .
 CMD ["./run.sh"]
