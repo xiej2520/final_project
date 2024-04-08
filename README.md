@@ -27,7 +27,7 @@ tile_server_url = "http://localhost:8080/styles/osm-bright/256/"
 # openstreetmap-tile-server
 #tile_server_url = "http://localhost:8080/tile/"
 
-db_url = "postgresql://renderer:renderer@localhost:5432/gis"
+db_url = "postgresql://carto:carto@localhost:5432/gis"
 
 submission_id = "FIX THIS"
 ```

@@ -14,6 +14,7 @@ use tokio::sync::Mutex;
 
 use crate::controllers::map_controller::*;
 use crate::ServerState;
+use server::StatusResponse; 
 
 pub fn new_router() -> Router<Arc<Mutex<ServerState>>> {
     Router::new()
@@ -66,7 +67,7 @@ pub async fn search_handler(
                     Ok(objs) => Json(objs).into_response(),
                     Err(e) => {
                         eprintln!("Error: {}", e);
-                        Json(Vec::<InBBoxObject>::new()).into_response()
+                        Json(StatusResponse::new_err(e.to_string())).into_response()
                     }
                 }
             }
@@ -78,7 +79,7 @@ pub async fn search_handler(
             Ok(objs) => Json(objs).into_response(),
             Err(e) => {
                 eprintln!("Error: {}", e);
-                Json(Vec::<AnywhereObject>::new()).into_response()
+                Json(StatusResponse::new_err(e.to_string())).into_response()
             }
         }
     }
@@ -110,7 +111,7 @@ pub async fn route_handler(
         Ok(route) => Json(route).into_response(),
         Err(e) => {
             eprintln!("Error: {}", e);
-            Json::<Vec<PathNodeObject>>(vec![]).into_response()
+            Json(StatusResponse::new_err(e.to_string())).into_response()
         }
     }
 }

@@ -8,6 +8,7 @@ pub fn new_router() -> Router {
 }
 
 #[debug_handler]
+#[allow(non_snake_case)]
 pub async fn turn_handler(Path((TL, BR)): Path<(String, String)>) -> Response {
     // https://stackoverflow.com/questions/6671183/calculate-the-center-point-of-multiple-latitude-longitude-coordinate-pairs
     let mut tl_it = TL.split(',');
@@ -52,6 +53,7 @@ fn center(tl_lat: f64, tl_lon: f64, br_lat: f64, br_lon: f64) -> (f64, f64) {
 }
 
 // rad -> (lat, lon)
+#[allow(dead_code)]
 fn center2(tl_lat: f64, tl_lon: f64, br_lat: f64, br_lon: f64) -> (f64, f64) {
     const T: f64 = 2.0 * PI;
     let ry1 = f64::ln((tl_lat.sin() + 1.0) / tl_lat.cos());
