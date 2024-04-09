@@ -51,15 +51,67 @@ html, body {
   height: 800px;
   padding: 0;
 }
+#manual-bbox {
+  background-color: #eeccee;
+  padding: 4px;
+  height: 20px;
+}
+#manual-bbox-label {
+  margin: 0;
+  padding-right: 8px;
+  display: inline-block;
+  font-weight: bold;
+  border-right: 2px solid #333;
+  cursor: pointer;
+}
+#manual-bbox-label:hover {
+  background-color: #ffaaff;
+  transition-duration: 0.4s;
+}
+#manual-bbox-panel {
+  display: none;
+  overflow: hidden;
+}
   </style>
 </head>
 
 <body>
   <form id="search-form" action="/api/search" method="POST">
-    <input type="text" id="bbox" name="bbox" value='{"minLat":40.908925,"minLon":-73.135909,"maxLat":40.927442,"maxLon":-73.109216}'>
+    <div id="manual-bbox">
+      <span id="manual-bbox-label"  onclick="toggleBBoxPanel()">Map View BBox</span>
+      <div id="manual-bbox-panel">
+        <label for="search-minlat">minLat</label>
+        <input type="number" id="search-minlat" name="minLat" min="-90" max="90" step="0.00000000000000001" value="40.908925">
+        <label for="search-maxlat">maxLat</label>
+        <input type="number" id="search-maxlat" name="maxLat" min="-90" max="90" step="0.00000000000000001" value="40.927442">
+        <label for="search-minlon">minLon</label>
+        <input type="number" id="search-minlon" name="minLon" min="-180" max="180" step="0.00000000000000001" value="-73.135909">
+        <label for="search-maxlon">maxLon</label>
+        <input type="number" id="search-maxlon" name="maxLon" min="-180" max="180" step="0.00000000000000001" value="-73.109216">
+      </div>
+    </div>
+    <label for="onlyInBox">onlyInBox</label>
+    <input type="checkbox" id="onlyInBox" name="onlyInBox">
     <input type="searchTerm" id="searchTerm" name="searchTerm" value="Stony Brook University" required>
     <input type="submit" value="Search">
   </form>
+
+<script>
+let bboxPanelOn = false;
+function toggleBBoxPanel() {
+  const label = document.getElementById("manual-bbox-label");
+  const panel = document.getElementById("manual-bbox-panel");
+  if (bboxPanelOn) {
+    panel.style.display = "none";
+    label.innerHTML = "Map View BBox";
+    bboxPanelOn = false;
+  } else {
+    panel.style.display = "inline";
+    label.innerHTML = "Manual BBox";
+    bboxPanelOn = true;
+  }
+}
+</script>
 
   <div id="search-map">
     <div class="search-results">
@@ -123,15 +175,27 @@ form.onsubmit = (event) => {
   event.preventDefault();
   const formData = new FormData(form);
   let data = Object.fromEntries(formData);
-  if (data.bbox != "") {
-    data.bbox.replace("\\\"", "\"");
-    data.bbox = JSON.parse(data.bbox);
-    data.onlyInBox = true;
-  } else {
-    data.bbox = null;
-    data.onlyInBox = false;
-  }
+  
+  const bbox = bboxPanelOn ?
+    {
+      minLat: parseFloat(data.minLat),
+      maxLat: parseFloat(data.maxLat),
+      minLon: parseFloat(data.minLon),
+      maxLon: parseFloat(data.maxLon),
+    } : {
+      minLat: map.getBounds().getNorth(),
+      maxLat: map.getBounds().getSouth(),
+      minLon: map.getBounds().getWest(),
+      maxLon: map.getBounds().getEast(),
+    };
+  data.bbox = bbox;
+  delete data.minLat;
+  delete data.maxLat;
+  delete data.minLon;
+  delete data.maxLon;
+  data.onlyInBox = data.onlyInBox == undefined ? false : true;
   console.log(data);
+
   fetch(form.action, {
     method: 'POST',
     headers: new Headers({ 'content-type': 'application/json' }),
