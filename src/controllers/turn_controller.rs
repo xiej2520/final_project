@@ -49,7 +49,7 @@ fn center2(tl_lat: f64, tl_lon: f64, br_lat: f64, br_lon: f64) -> (f64, f64) {
     (lat, lon)
 }
 
-pub async fn get_tile(tl_lat: f64, tl_lon: f64, br_lat: f64, br_lon: f64) -> Bytes {
+pub async fn get_tile(tl_lat: f64, tl_lon: f64, br_lat: f64, br_lon: f64) -> Result<Bytes, reqwest::Error> {
     let (tl_lat, tl_lon, br_lat, br_lon) = (
         tl_lat.to_radians(),
         tl_lon.to_radians(),
@@ -104,9 +104,9 @@ pub async fn get_tile(tl_lat: f64, tl_lon: f64, br_lat: f64, br_lon: f64) -> Byt
     );
     tracing::info!("{url}");
 
-    let response = reqwest::get(url).await.unwrap();
+    let response = reqwest::get(url).await?;
 
-    response.bytes().await.unwrap()
+    response.bytes().await
 }
 
 // localhost/turn/83.979259,-90.229003/0.865903,-65.359481.png negative zoom?

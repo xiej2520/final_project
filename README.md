@@ -3,8 +3,8 @@
 ## Solution
 
 1. Run `./scripts/install_docker.sh` to install docker
-2. Run `./scripts/import.sh` to import data base
-3. Run `docker compose up -d` to run database
+2. Run `./scripts/import.sh` to import data
+3. Run `REGION=<region> docker compose up -d` to run services 
 4. Run `./scripts/install_rust.sh` to install rust
 5. Run `cargo run --release` to run server
 

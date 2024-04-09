@@ -36,9 +36,10 @@ struct ServerConfig {
     domain: String,
     relay_ip: [u8; 4],
     relay_port: u16,
+    db_url: String,
     tile_server_url: String,
     tile_server_center_url: String,
-    db_url: String,
+    routing_url: String,
     submission_id: String,
 }
 
@@ -54,9 +55,10 @@ static CONFIG: Lazy<ServerConfig> = Lazy::new(|| {
         domain: config.get("domain").unwrap(),
         relay_ip: config.get("relay_ip").unwrap(),
         relay_port: config.get("relay_port").unwrap(),
+        db_url: config.get("db_url").unwrap(),
         tile_server_url: config.get("tile_server_url").unwrap(),
         tile_server_center_url: config.get("tile_server_center_url").unwrap(),
-        db_url: config.get("db_url").unwrap(),
+        routing_url: config.get("routing_url").unwrap(),
         submission_id: config.get("submission_id").unwrap(),
     })
 });

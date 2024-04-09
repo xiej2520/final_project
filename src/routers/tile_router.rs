@@ -1,5 +1,12 @@
-use axum::{body::Body, extract::Path, response::Response, routing::get, Router};
+use axum::{
+    body::Body,
+    extract::Path,
+    response::{IntoResponse, Response},
+    routing::get,
+    Json, Router,
+};
 use axum_macros::debug_handler;
+use server::StatusResponse;
 
 use crate::tile_controller::get_tile;
 
@@ -9,11 +16,14 @@ pub fn new_router() -> Router {
 
 #[debug_handler]
 pub async fn tile_handler(Path((layer, v, h)): Path<(i32, i32, String)>) -> Response {
-    // ignore .jpg/.png
     let x = v;
-    let y: i32 = h.split('.').next().unwrap_or(&h).parse().unwrap_or(1);
-    // Assignment wants tiles/$LAYER/$V/$H.png, which is
-    // tile/{z}/{x}/{y}.png for tile server
+    let y: i32 = h.split('.').next().unwrap_or(&h).parse().unwrap_or(1); // ignore extension
 
-    Response::new(Body::from(get_tile(layer, x, y).await))
+    match get_tile(layer, x, y).await {
+        Ok(bytes) => Response::new(Body::from(bytes)),
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            Json(StatusResponse::new_err(e.to_string())).into_response()
+        }
+    }
 }

@@ -1,6 +1,7 @@
 services:
   database:
     image: overv/openstreetmap-tile-server
+    command: run
     volumes:
       - osm-data:/data/database
     ports:
@@ -9,14 +10,14 @@ services:
       - PGPASSWORD=${PGPASSWORD:-}
   tiles:
     image: maptiler/tileserver-gl
-    command: --file /data/$(cat /data/REGION).mbtiles
+    command: --file /data/${REGION}.mbtiles
     volumes:
       - /data:/data
     ports:
       - "8080:8080"
   routing:
     image: ghcr.io/project-osrm/osrm-backend
-    command: osrm-routed --algorithm mld /data/$(cat /data/REGION).osrm
+    command: osrm-routed --algorithm mld /data/${REGION}.osrm
     volumes:
       - /data:/data
     ports:

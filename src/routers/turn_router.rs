@@ -1,5 +1,12 @@
-use axum::{body::Body, extract::Path, response::Response, routing::get, Router};
+use axum::{
+    body::Body,
+    extract::Path,
+    response::{IntoResponse, Response},
+    routing::get,
+    Json, Router,
+};
 use axum_macros::debug_handler;
+use server::StatusResponse;
 
 use crate::controllers::turn_controller::*;
 
@@ -23,5 +30,11 @@ pub async fn turn_handler(Path((TL, BR)): Path<(String, String)>) -> Response {
         br_it.next().unwrap().parse().unwrap(),
     );
 
-    Response::new(Body::from(get_tile(tl_lat, tl_lon, br_lat, br_lon).await))
+    match get_tile(tl_lat, tl_lon, br_lat, br_lon).await {
+        Ok(bytes) => Response::new(Body::from(bytes)),
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            Json(StatusResponse::new_err(e.to_string())).into_response()
+        }
+    }
 }

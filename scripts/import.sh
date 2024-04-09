@@ -7,7 +7,6 @@ if [ "$#" -ne 1 ]; then
 fi
 
 REGION=$1
-echo $REGION > /data/REGION
 
 # Download the data
 if [ ! -f "/data/${REGION}.osm.pbf" ]; then
@@ -46,4 +45,4 @@ docker run --rm \
     -t -v /data:/data \
     ghcr.io/project-osrm/osrm-backend \
     osrm-customize \
-    /data/berlin-latest.osrm || echo "osrm-customize failed"
+    /data/${REGION}.osrm || echo "osrm-customize failed"
