@@ -22,8 +22,11 @@ domain = "not-invented-here.cse356.compas.cs.stonybrook.edu"
 relay_ip = [130, 245, 171, 151]
 relay_port = 11587
 
+routing_url = "localhost:5000/routing/v1/driving"
+
 # tileserver-gl, also 512
 tile_server_url = "http://localhost:8080/styles/osm-bright/256"
+tile_server_center_url = "http://localhost:8080/styles/osm-bright/static/"
 # openstreetmap-tile-server
 #tile_server_url = "http://localhost:8080/tile/"
 
