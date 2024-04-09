@@ -23,7 +23,7 @@ relay_ip = [130, 245, 171, 151]
 relay_port = 11587
 
 # tileserver-gl, also 512
-tile_server_url = "http://localhost:8080/styles/osm-bright/256/"
+tile_server_url = "http://localhost:8080/styles/osm-bright/256"
 # openstreetmap-tile-server
 #tile_server_url = "http://localhost:8080/tile/"
 

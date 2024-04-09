@@ -1,12 +1,26 @@
 services:
   database:
-    image: pgrouting/pgrouting:16-3.4-3.6.1
+    image: overv/openstreetmap-tile-server
     volumes:
-      - osm-data:/var/lib/postgresql/data
+      - osm-data:/data/database
     ports:
       - "5432:5432"
     environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - PGPASSWORD=${PGPASSWORD:-}
+  tiles:
+    image: maptiler/tileserver-gl
+    command: --file /data/$(cat /data/REGION).mbtiles
+    volumes:
+      - /data:/data
+    ports:
+      - "8080:8080"
+  routing:
+    image: ghcr.io/project-osrm/osrm-backend
+    command: osrm-routed --algorithm mld /data/$(cat /data/REGION).osrm
+    volumes:
+      - /data:/data
+    ports:
+      - "5000:5000"
 
 volumes:
   osm-data:

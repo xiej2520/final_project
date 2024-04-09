@@ -109,9 +109,10 @@ async fn main() {
             user_router::new_router().with_state(user_store.clone()),
         )
         .nest(
-            "/",
-            map_router::new_router().with_state(server_state.clone()),
+            "/api",
+            search_router::new_router().with_state(server_state.clone()),
         )
+        .nest("/", convert_router::new_router())
         .layer(axum::middleware::from_fn(append_headers))
         .layer(axum::middleware::from_fn(print_request_response))
         .layer(TraceLayer::new_for_http())

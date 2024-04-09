@@ -1,33 +1,49 @@
 #!/bin/bash
 
-SCRIPT_DIR=$(dirname "$0")
-
-function usage() {
+if [ "$#" -ne 1 ]; then
     echo "Usage: $0 region"
     echo "  region: The region to import."
-}
-
-if [ "$#" -ne 1 ]; then
-    usage
     exit 1
 fi
 
-# Download the data
 REGION=$1
+echo $REGION > /data/REGION
+
+# Download the data
 if [ ! -f "/data/${REGION}.osm.pbf" ]; then
     wget -P /data "https://grading.cse356.compas.cs.stonybrook.edu/data/${REGION}.osm.pbf"
 fi
 
-# Create volumes for routing
 docker volume create osm-data
 
-# Build the routing service
-docker build -t import_database $SCRIPT_DIR/../services/database
-
-# Import the routing data
 docker run --rm \
-    -e POSTGRES_PASSWORD=postgres \
     -v /data/${REGION}.osm.pbf:/data/region.osm.pbf \
-    -v osm-data:/var/lib/postgresql/data \
-    --shm-size="3gb" \
-    import_database
+    -v osm-data:/data/database \
+    -e "FLAT_NODES=enabled" \
+    overv/openstreetmap-tile-server \
+    import
+
+docker run --rm \
+    -e JAVA_TOOL_OPTIONS="-Xmx1g" \
+    -v /data:/data \
+    ghcr.io/onthegomap/planetiler --download \
+    --osm-path=/data/${REGION}.osm.pbf \
+    --output=/data/${REGION}.mbtiles
+
+docker run --rm \
+    -t -v /data:/data \
+    ghcr.io/project-osrm/osrm-backend \
+    osrm-extract -p /opt/car.lua \
+    /data/${REGION}.osm.pbf || echo "osrm-extract failed"
+
+docker run --rm \
+    -t -v /data:/data \
+    ghcr.io/project-osrm/osrm-backend \
+    osrm-partition \
+    /data/${REGION}.osrm || echo "osrm-partition failed"
+
+docker run --rm \
+    -t -v /data:/data \
+    ghcr.io/project-osrm/osrm-backend \
+    osrm-customize \
+    /data/berlin-latest.osrm || echo "osrm-customize failed"
