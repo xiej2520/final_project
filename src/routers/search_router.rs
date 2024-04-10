@@ -9,11 +9,9 @@ use axum::{
 use axum_macros::debug_handler;
 
 use serde::Deserialize;
-use tokio::sync::Mutex;
 
 use crate::controllers::search_controller::*;
-use crate::ServerState;
-use server::StatusResponse; 
+use server::status_response::StatusResponse;
 
 #[derive(Debug, Deserialize)]
 #[allow(non_snake_case)]
@@ -23,14 +21,13 @@ pub struct SearchParams {
     searchTerm: String,
 }
 
-pub fn new_router() -> Router<Arc<Mutex<ServerState>>> {
-    Router::new()
-        .route("/search", post(search_handler))
+pub fn new_router() -> Router<Arc<tokio_postgres::Client>> {
+    Router::new().route("/search", post(search_handler))
 }
 
 #[debug_handler]
 pub async fn search_handler(
-    State(state): State<Arc<Mutex<ServerState>>>,
+    State(client): State<Arc<tokio_postgres::Client>>,
     Json(SearchParams {
         bbox,
         onlyInBox: only_in_box,
@@ -39,21 +36,17 @@ pub async fn search_handler(
 ) -> Response {
     if only_in_box {
         match bbox {
-            Some(bbox) => {
-                let client = &state.lock().await.client;
-                match search_in_bbox(client, bbox, &search_term).await {
-                    Ok(objs) => Json(objs).into_response(),
-                    Err(e) => {
-                        eprintln!("Error: {}", e);
-                        Json(StatusResponse::new_err(e.to_string())).into_response()
-                    }
+            Some(bbox) => match search_in_bbox(&client, bbox, &search_term).await {
+                Ok(objs) => Json(objs).into_response(),
+                Err(e) => {
+                    eprintln!("Error: {}", e);
+                    Json(StatusResponse::new_err(e.to_string())).into_response()
                 }
-            }
+            },
             None => Json(Vec::<InBBoxObject>::new()).into_response(),
         }
     } else {
-        let client = &state.lock().await.client;
-        match search_anywhere(client, &search_term).await {
+        match search_anywhere(&client, &search_term).await {
             Ok(objs) => Json(objs).into_response(),
             Err(e) => {
                 eprintln!("Error: {}", e);

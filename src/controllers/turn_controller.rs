@@ -2,7 +2,7 @@ use std::f64::consts::PI;
 
 use axum::body::Bytes;
 
-use crate::CONFIG;
+use server::http_client::HttpClient;
 
 // rad -> (lat, lon)
 // https://stackoverflow.com/questions/6671183/calculate-the-center-point-of-multiple-latitude-longitude-coordinate-pairs
@@ -49,7 +49,13 @@ fn center2(tl_lat: f64, tl_lon: f64, br_lat: f64, br_lon: f64) -> (f64, f64) {
     (lat, lon)
 }
 
-pub async fn get_tile(tl_lat: f64, tl_lon: f64, br_lat: f64, br_lon: f64) -> Result<Bytes, reqwest::Error> {
+pub async fn get_tile(
+    client: &HttpClient,
+    tl_lat: f64,
+    tl_lon: f64,
+    br_lat: f64,
+    br_lon: f64,
+) -> Result<Bytes, String> {
     let (tl_lat, tl_lon, br_lat, br_lon) = (
         tl_lat.to_radians(),
         tl_lon.to_radians(),
@@ -98,15 +104,21 @@ pub async fn get_tile(tl_lat: f64, tl_lon: f64, br_lat: f64, br_lon: f64) -> Res
 
     // http://localhost:8080/styles/osm-bright/static/-74,40.5,8.4/256x256@3x.png
     let (lat, lon) = (lat.to_degrees(), lon.to_degrees());
-    let url = format!(
-        "{}/{lon},{lat},{zoom}/100x100.png",
-        CONFIG.tile_server_center_url
-    );
-    tracing::info!("{url}");
+    let url = format!("{lon},{lat},{zoom}/100x100.png");
+    
+    let builder = match client.get(&url).await {
+        Ok(builder) => builder,
+        Err(e) => return Err(e.to_string()),
+    };
+    let response = match builder.send().await {
+        Ok(response) => response,
+        Err(e) => return Err(e.to_string()),
+    };
 
-    let response = reqwest::get(url).await?;
-
-    response.bytes().await
+    match response.bytes().await {
+        Ok(bytes) => Ok(bytes),
+        Err(e) => Err(e.to_string()),
+    }
 }
 
 // localhost/turn/83.979259,-90.229003/0.865903,-65.359481.png negative zoom?

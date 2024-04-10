@@ -11,7 +11,7 @@ use tokio::sync::Mutex;
 use tower_sessions::Session;
 
 use crate::controllers::user_controller::*;
-use server::StatusResponse;
+use server::status_response::StatusResponse;
 
 #[derive(Debug, Clone, Deserialize)]
 struct AddUserBody {

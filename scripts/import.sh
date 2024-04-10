@@ -18,6 +18,7 @@ docker volume create osm-data
 docker run --rm \
     -v /data/${REGION}.osm.pbf:/data/region.osm.pbf \
     -v osm-data:/data/database \
+    -e THREADS=8 \
     -e "FLAT_NODES=enabled" \
     overv/openstreetmap-tile-server \
     import

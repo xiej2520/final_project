@@ -1,7 +1,8 @@
-use std::f64::consts::PI;
+use std::fmt;
 
 use serde::{Deserialize, Serialize};
-use tokio_postgres::Client;
+
+use server::http_client::HttpClient;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Coordinates {
@@ -13,132 +14,94 @@ pub struct Coordinates {
 pub struct PathNodeObject {
     description: String,
     coordinates: Coordinates,
+    distance: f64,
 }
 
-impl PathNodeObject {
-    const DIRECTIONS: [&'static str; 4] = ["north", "east", "south", "west"];
+#[derive(Debug, Deserialize)]
+#[allow(dead_code)]
+struct Maneuver {
+    location: [f64; 2],
+    bearing_after: u32,
+    bearing_before: u32,
+    r#type: String,
+    modifier: Option<String>,
+    exit: Option<u32>,
+}
 
-    fn get_description(angle: f64) -> String {
-        let mut dir = 0;
-        while dir < PathNodeObject::DIRECTIONS.len() {
-            if angle < ((2 * dir + 1) as f64) * (PI / PathNodeObject::DIRECTIONS.len() as f64) {
-                break;
-            }
-            dir += 1;
+impl fmt::Display for Maneuver {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.r#type.as_str() {
+            // TODO: implement exits for roundabouts / rotaries
+            "depart" => write!(f, "Depart from origin"),
+            "arrive" => write!(f, "Arrive at destination"),
+            &_ => match self.modifier.as_deref() {
+                Some("left") => write!(f, "Turn left"),
+                Some("right") => write!(f, "Turn right"),
+                Some("straight") => write!(f, "Go straight"),
+                Some("uturn") => write!(f, "Make a U-turn"),
+                Some(turn) => write!(f, "Make a {turn}"),
+                _ => write!(f, "Unknown maneuver"),
+            },
         }
-        dir %= PathNodeObject::DIRECTIONS.len();
-        format!("Go {}", PathNodeObject::DIRECTIONS[dir])
     }
 }
 
-impl From<tokio_postgres::Row> for PathNodeObject {
-    fn from(row: tokio_postgres::Row) -> Self {
+#[derive(Debug, Deserialize)]
+struct Step {
+    maneuver: Maneuver,
+    distance: f64,
+}
+
+impl From<Step> for PathNodeObject {
+    fn from(step: Step) -> Self {
         Self {
-            description: match row.get("angle") {
-                Some(angle) => PathNodeObject::get_description(angle),
-                None => "Stop".to_string(),
-            },
+            description: format!("{}", step.maneuver),
             coordinates: Coordinates {
-                lat: row.get("lat"),
-                lon: row.get("lon"),
+                lat: step.maneuver.location[1],
+                lon: step.maneuver.location[0],
             },
+            distance: step.distance,
         }
     }
 }
 
-const ROUTE_SQL_QUERY: &str = r#"
-    SELECT 
-        ST_Azimuth(ST_StartPoint(geom_way), ST_EndPoint(geom_way)) as angle,
-        lat::double precision, lon::double precision 
-    FROM pgr_dijkstra(
-        'SELECT 
-            osm_id AS id, 
-            osm_source_id AS source, osm_target_id AS target, 
-            cost, reverse_cost 
-        FROM osm_2po_4pgr',
-        $1::bigint, $2::bigint,
-        directed => false
-    )
-    JOIN ( 
-        SELECT id, 
-            (lat / 10000000.0)::double precision AS lat, 
-            (lon / 10000000.0)::double precision AS lon 
-        FROM planet_osm_nodes 
-    )
-    ON node = id
-    LEFT JOIN osm_2po_4pgr AS edges 
-    ON edge = edges.osm_id;
-"#;
-
-pub async fn find_route(
-    client: &Client,
+pub async fn get_route(
+    client: &HttpClient,
     source: Coordinates,
     destination: Coordinates,
-) -> Result<Vec<PathNodeObject>, tokio_postgres::Error> {
-    let osm_source_id = get_source_osm_id(client, source).await?;
-    let osm_target_id = get_target_osm_id(client, destination).await?;
+) -> Result<Vec<PathNodeObject>, String> {
+    let url = format!(
+        "{},{};{},{}?steps=true",
+        source.lon, source.lat, destination.lon, destination.lat
+    );
 
-    let stmt = client.prepare(ROUTE_SQL_QUERY).await?;
+    let builder = match client.get(&url).await {
+        Ok(builder) => builder,
+        Err(e) => return Err(e.to_string()),
+    };
+    let response = match builder.send().await {
+        Ok(response) => response,
+        Err(e) => return Err(e.to_string()),
+    };
 
-    let rows = client
-        .query(&stmt, &[&osm_source_id, &osm_target_id])
-        .await?;
+    let json: serde_json::Value = match response.json().await {
+        Ok(json) => json,
+        Err(e) => return Err(e.to_string()),
+    };
+    if json["code"] != "Ok" {
+        return Err(json["message"].to_string());
+    }
 
-    Ok(rows.into_iter().map(PathNodeObject::from).collect())
-}
+    let mut path_nodes: Vec<PathNodeObject> = vec![];
+    let route = &json["routes"][0]; // take the first (aka fastest) route
+    for leg in route["legs"].as_array().unwrap() {
+        for step in leg["steps"].as_array().unwrap() {
+            match serde_json::from_value::<Step>(step.clone()) {
+                Ok(step) => path_nodes.push(step.into()),
+                Err(e) => return Err(e.to_string()),
+            }
+        }
+    }
 
-const SOURCE_OSM_SQL_QUERY: &str = r#"
-    SELECT osm_source_id
-    FROM (
-        SELECT DISTINCT 
-            osm_source_id, 
-            ST_SetSRID(ST_MakePoint(lat / 10000000.0, lon / 10000000.0), 4326) as geom
-        FROM osm_2po_4pgr
-        JOIN planet_osm_nodes as nodes
-        ON osm_source_id = nodes.id
-    )
-    ORDER BY ST_Distance(
-        geom,
-        ST_SetSRID(ST_MakePoint($1, $2), 4326)
-    )
-    LIMIT 1;
-"#;
-
-async fn get_source_osm_id(
-    client: &Client,
-    Coordinates { lat, lon }: Coordinates,
-) -> Result<i64, tokio_postgres::Error> {
-    let stmt = client.prepare(SOURCE_OSM_SQL_QUERY).await?;
-
-    let row = client.query_one(&stmt, &[&lat, &lon]).await?;
-
-    Ok(row.get(0))
-}
-
-const TARGET_OSM_SQL_QUERY: &str = r#"
-    SELECT osm_target_id
-    FROM (
-        SELECT DISTINCT 
-            osm_target_id, 
-            ST_SetSRID(ST_MakePoint(lat / 10000000.0, lon / 10000000.0), 4326) as geom
-        FROM osm_2po_4pgr
-        JOIN planet_osm_nodes as nodes
-        ON osm_source_id = nodes.id
-    )
-    ORDER BY ST_Distance(
-        geom,
-        ST_SetSRID(ST_MakePoint($1, $2), 4326)
-    )
-    LIMIT 1;
-"#;
-
-async fn get_target_osm_id(
-    client: &Client,
-    Coordinates { lat, lon }: Coordinates,
-) -> Result<i64, tokio_postgres::Error> {
-    let stmt = client.prepare(TARGET_OSM_SQL_QUERY).await?;
-
-    let row = client.query_one(&stmt, &[&lat, &lon]).await?;
-
-    Ok(row.get(0))
+    Ok(path_nodes)
 }

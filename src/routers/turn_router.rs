@@ -1,22 +1,26 @@
 use axum::{
     body::Body,
-    extract::Path,
+    extract::{Path, State},
     response::{IntoResponse, Response},
     routing::get,
     Json, Router,
 };
 use axum_macros::debug_handler;
-use server::StatusResponse;
+use server::status_response::StatusResponse;
 
 use crate::controllers::turn_controller::*;
+use server::http_client::HttpClient;
 
-pub fn new_router() -> Router {
-    Router::new().route("/:TL/:BR", get(turn_handler))
+pub fn new_router() -> Router<HttpClient> {
+    Router::new().route("/turn/:TL/:BR", get(turn_handler))
 }
 
 #[debug_handler]
 #[allow(non_snake_case)]
-pub async fn turn_handler(Path((TL, BR)): Path<(String, String)>) -> Response {
+pub async fn turn_handler(
+    State(client): State<HttpClient>,
+    Path((TL, BR)): Path<(String, String)>,
+) -> Response {
     // https://stackoverflow.com/questions/6671183/calculate-the-center-point-of-multiple-latitude-longitude-coordinate-pairs
     let mut tl_it = TL.split(',');
     let (tl_lat, tl_lon): (f64, f64) = (
@@ -30,7 +34,7 @@ pub async fn turn_handler(Path((TL, BR)): Path<(String, String)>) -> Response {
         br_it.next().unwrap().parse().unwrap(),
     );
 
-    match get_tile(tl_lat, tl_lon, br_lat, br_lon).await {
+    match get_tile(&client, tl_lat, tl_lon, br_lat, br_lon).await {
         Ok(bytes) => Response::new(Body::from(bytes)),
         Err(e) => {
             eprintln!("Error: {}", e);
