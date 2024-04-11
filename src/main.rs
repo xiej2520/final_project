@@ -143,8 +143,8 @@ async fn main() {
                 // remove for faster response
                 .layer(axum::middleware::from_fn(print_request_response))
                 .layer(axum::middleware::from_fn(append_headers)),
-        ) 
-        .layer(session_layer); 
+        )
+        .layer(session_layer);
 
     let addr = SocketAddr::from((CONFIG.ip, CONFIG.http_port));
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();

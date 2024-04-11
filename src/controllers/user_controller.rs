@@ -88,8 +88,10 @@ impl User {
         // escape special characters in email, including '+'
         let verification_link = Url::parse_with_params(
             format!("http://{}/api/verify", CONFIG.domain).as_str(),
-            &[("email", self.email.as_str()), ("key", self.key.as_str())]
-        ).map_err(|e| e.to_string())?.to_string();
+            &[("email", self.email.as_str()), ("key", self.key.as_str())],
+        )
+        .map_err(|e| e.to_string())?
+        .to_string();
         //return Ok(verification_link);
 
         let email = Message::builder()
@@ -114,7 +116,9 @@ impl User {
             .build();
         match mailer.send(email).await {
             Ok(_) => Ok(verification_link),
-            Err(err) => Err(format!("Failed to send email: {err}, verification link {verification_link}")),
+            Err(err) => Err(format!(
+                "Failed to send email: {err}, verification link {verification_link}"
+            )),
         }
     }
 

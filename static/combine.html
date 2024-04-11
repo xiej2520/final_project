@@ -51,21 +51,26 @@ form {
 }
 
 label {
-  width: 125px;
+  min-width: 125px;
+  width: 35%;
   padding: 2px;
   display: inline-block;
   font-weight: bold;
   text-align: left;
 }
-input {
+input[type=text], input[type=password], input[type=email], input[type=search],
+    input[type=number] {
+  width: 60%;
   float: right;
   line-height: 1.5em;
   border: none;
   background-color: rgba(255, 255, 255, 0.2);
+  color: white;
 }
 button {
   width: 100%;
-  background-color: #aaa;
+  background-color: #1e1731;
+  color: white;
   border: none;
   font-size: 16pt;
   padding: 8px 16px;
@@ -99,6 +104,10 @@ button:hover {
   padding: 4px;
 }
 
+#search-form label {
+  width: 20%;
+  min-width: auto;
+}
 
 #search-map {
   background-color: #eeffee;
@@ -142,17 +151,14 @@ button:hover {
   height: 800px;
   padding: 0;
 }
-#manual-bbox {
-  background-color: #eeccee;
-  padding: 4px;
-  height: 20px;
-}
 #manual-bbox-label {
+  background-color: #eeccee;
+  height: 20px;
   margin: 0;
+  padding: 4px;
   padding-right: 8px;
   display: inline-block;
   font-weight: bold;
-  border-right: 2px solid #333;
   cursor: pointer;
 }
 #manual-bbox-label:hover {
@@ -253,9 +259,10 @@ button:hover {
             <input type="number" id="search-maxlon" name="maxLon" min="-180" max="180" step="0.00000000000000001" value="-73.109216">
           </div>
         </div>
+        <br/>
         <label for="onlyInBox">onlyInBox</label>
         <input type="checkbox" id="onlyInBox" name="onlyInBox">
-        <input type="searchTerm" id="searchTerm" name="searchTerm" value="Stony Brook University" required>
+        <input type="search" id="searchTerm" name="searchTerm" value="Stony Brook University" required>
         <button type="submit" value="search">Search</button>
       </form>
     </div>

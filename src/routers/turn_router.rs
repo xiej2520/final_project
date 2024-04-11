@@ -16,18 +16,17 @@ pub fn new_router() -> Router<HttpClient> {
 }
 
 #[debug_handler]
-#[allow(non_snake_case)]
 pub async fn turn_handler(
     State(client): State<HttpClient>,
-    Path((TL, BR)): Path<(String, String)>,
+    Path((tl, br)): Path<(String, String)>,
 ) -> Response {
     // https://stackoverflow.com/questions/6671183/calculate-the-center-point-of-multiple-latitude-longitude-coordinate-pairs
-    let mut tl_it = TL.split(',');
+    let mut tl_it = tl.split(',');
     let (tl_lat, tl_lon): (f64, f64) = (
         tl_it.next().unwrap().parse().unwrap(),
         tl_it.next().unwrap().parse().unwrap(),
     );
-    let br_num = BR.split(".png").next().unwrap_or(BR.as_str());
+    let br_num = br.split(".png").next().unwrap_or(br.as_str());
     let mut br_it = br_num.split(',');
     let (br_lat, br_lon): (f64, f64) = (
         br_it.next().unwrap().parse().unwrap(),

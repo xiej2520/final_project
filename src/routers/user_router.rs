@@ -60,10 +60,14 @@ async fn add_user_handler(
     {
         let store = store.read().await;
         if store.get_user(&username).is_some() {
-            return Json(StatusResponse::new_err(format!("User named '{username}' already exists")));
+            return Json(StatusResponse::new_err(format!(
+                "User named '{username}' already exists"
+            )));
         }
         if store.get_user_by_email(&email).is_some() {
-            return Json(StatusResponse::new_err(format!("Email '{email}' already registered")));
+            return Json(StatusResponse::new_err(format!(
+                "Email '{email}' already registered"
+            )));
         }
     }
     match user.send_email().await {

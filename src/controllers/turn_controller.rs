@@ -102,7 +102,7 @@ pub async fn get_tile(
     // http://localhost:8080/styles/osm-bright/static/-74,40.5,8.4/256x256@3x.png
     let (lat, lon) = (lat.to_degrees(), lon.to_degrees());
     let url = format!("{lon},{lat},{zoom}/100x100.png");
-    
+
     let builder = match client.get(&url).await {
         Ok(builder) => builder,
         Err(e) => return Err(e.to_string()),
