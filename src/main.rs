@@ -14,7 +14,7 @@ use chrono::Local;
 
 use http_body_util::BodyExt;
 
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 use tokio_postgres::NoTls;
 use tower::ServiceBuilder;
 use tracing_subscriber::fmt;
@@ -66,7 +66,7 @@ static CONFIG: Lazy<ServerConfig> = Lazy::new(|| {
 });
 
 pub struct ServerState {
-    user_store: Arc<Mutex<user_controller::UserStore>>,
+    user_store: Arc<RwLock<user_controller::UserStore>>,
     db_client: Arc<tokio_postgres::Client>,
     // no need for Arc as reqwest::Client already implements it
     tile_client: HttpClient,
@@ -89,7 +89,7 @@ impl ServerState {
         let turn_client = HttpClient::new(&CONFIG.turn_url)?;
         let routing_client = HttpClient::new(&CONFIG.routing_url)?;
         Ok(Self {
-            user_store: Arc::new(Mutex::new(user_store)),
+            user_store: Arc::new(RwLock::new(user_store)),
             db_client: Arc::new(db_client),
             tile_client,
             turn_client,

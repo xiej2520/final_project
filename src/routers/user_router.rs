@@ -7,7 +7,7 @@ use axum::{
 };
 use axum_macros::debug_handler;
 use serde::{Deserialize, Serialize};
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 use tower_sessions::Session;
 
 use crate::controllers::user_controller::*;
@@ -38,7 +38,7 @@ struct UserResponse {
     username: Option<String>,
 }
 
-pub fn new_router() -> Router<Arc<Mutex<UserStore>>> {
+pub fn new_router() -> Router<Arc<RwLock<UserStore>>> {
     Router::new()
         .route("/adduser", post(add_user_handler))
         .route("/verify", get(verify_user_handler))
@@ -49,7 +49,7 @@ pub fn new_router() -> Router<Arc<Mutex<UserStore>>> {
 
 #[debug_handler]
 async fn add_user_handler(
-    State(store): State<Arc<Mutex<UserStore>>>,
+    State(store): State<Arc<RwLock<UserStore>>>,
     Json(AddUserBody {
         username,
         password,
@@ -58,7 +58,7 @@ async fn add_user_handler(
 ) -> Json<StatusResponse> {
     let user = User::new(&username, &password, &email);
     {
-        let store = store.lock().await;
+        let store = store.read().await;
         if store.get_user(&username).is_some() {
             return Json(StatusResponse::new_err(format!("User named '{username}' already exists")));
         }
@@ -68,7 +68,7 @@ async fn add_user_handler(
     }
     match user.send_email().await {
         Ok(link) => {
-            let mut store = store.lock().await;
+            let mut store = store.write().await;
             match store.add_user(user) {
                 Ok(()) => Json(StatusResponse::new_ok(format!(
                     "User added, verification url={link}",
@@ -82,16 +82,16 @@ async fn add_user_handler(
 
 #[debug_handler]
 async fn verify_user_handler(
-    State(store): State<Arc<Mutex<UserStore>>>,
+    State(store): State<Arc<RwLock<UserStore>>>,
     Query(VerifyParams { email, key }): Query<VerifyParams>,
 ) -> Json<StatusResponse> {
-    let mut store = store.lock().await;
     let Some(email) = email else {
         return Json(StatusResponse::new_err("Email not provided".to_owned()));
     };
     let Some(key) = key else {
         return Json(StatusResponse::new_err("Key not provided".to_owned()));
     };
+    let mut store = store.write().await;
     match store.get_user_by_email_mut(&email) {
         Some(user) => match user.enable(&key) {
             Ok(()) => Json(StatusResponse::new_ok("User enabled".to_owned())),
@@ -103,7 +103,7 @@ async fn verify_user_handler(
 
 #[debug_handler]
 async fn login_user_handler(
-    State(store): State<Arc<Mutex<UserStore>>>,
+    State(store): State<Arc<RwLock<UserStore>>>,
     session: Session,
     Json(LoginBody { username, password }): Json<LoginBody>,
 ) -> Json<StatusResponse> {
@@ -111,7 +111,7 @@ async fn login_user_handler(
         return Json(StatusResponse::new_ok("User already logged in".to_owned()));
     }
 
-    let store = store.lock().await;
+    let store = store.read().await;
     match store.get_user(&username) {
         Some(user) => {
             if user.is_enabled() && user.matches_password(&password) {
