@@ -18,11 +18,8 @@ pub struct PathNodeObject {
 }
 
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)]
 struct Maneuver {
     location: [f64; 2],
-    bearing_after: u32,
-    bearing_before: u32,
     r#type: String,
     modifier: Option<String>,
     exit: Option<u32>,
@@ -31,15 +28,15 @@ struct Maneuver {
 impl fmt::Display for Maneuver {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.r#type.as_str() {
-            // TODO: implement exits for roundabouts / rotaries
             "depart" => write!(f, "Depart from origin"),
             "arrive" => write!(f, "Arrive at destination"),
+            "exit roundabout" | "exit rotary" => write!(f, "Take exit {}", self.exit.unwrap_or(0)),
             &_ => match self.modifier.as_deref() {
                 Some("left") => write!(f, "Turn left"),
                 Some("right") => write!(f, "Turn right"),
                 Some("straight") => write!(f, "Go straight"),
                 Some("uturn") => write!(f, "Make a U-turn"),
-                Some(turn) => write!(f, "Make a {turn}"),
+                Some(turn) => write!(f, "Make a {turn} turn"),
                 _ => write!(f, "Unknown maneuver"),
             },
         }

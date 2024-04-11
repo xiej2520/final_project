@@ -20,6 +20,7 @@ docker run --rm \
     -v osm-data:/data/database \
     -e THREADS=8 \
     -e "FLAT_NODES=enabled" \
+    --shm-size="4gb" \
     overv/openstreetmap-tile-server \
     import
 

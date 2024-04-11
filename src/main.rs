@@ -6,8 +6,8 @@ use once_cell::sync::Lazy;
 use axum::{
     body::{Body, Bytes},
     http::StatusCode,
-    response::Response,
-    Router,
+    response::{IntoResponse, Response},
+    Json, Router,
 };
 use axum::{extract::Request, middleware::Next};
 use chrono::Local;
@@ -16,19 +16,20 @@ use http_body_util::BodyExt;
 
 use tokio::sync::Mutex;
 use tokio_postgres::NoTls;
+use tower::ServiceBuilder;
 use tracing_subscriber::fmt;
 use tracing_subscriber::layer::SubscriberExt;
 
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
-use tower_sessions::{cookie::time::Duration, Expiry, MemoryStore, SessionManagerLayer};
+use tower_sessions::{cookie::time::Duration, Expiry, MemoryStore, Session, SessionManagerLayer};
 
 pub mod controllers;
 pub mod routers;
 
 use controllers::*;
 use routers::*;
-use server::http_client::HttpClient;
+use server::{http_client::HttpClient, status_response::StatusResponse};
 
 #[derive(Debug)]
 struct ServerConfig {
@@ -127,10 +128,6 @@ async fn main() {
         .nest_service("/", ServeDir::new("static"))
         .nest(
             "/api",
-            user_router::new_router().with_state(user_store.clone()),
-        )
-        .nest(
-            "/api",
             search_router::new_router().with_state(db_client.clone()),
         )
         .nest(
@@ -140,17 +137,37 @@ async fn main() {
         .nest("/", convert_router::new_router())
         .nest("/", tile_router::new_router().with_state(tile_client))
         .nest("/", turn_router::new_router().with_state(turn_client))
-        .layer(axum::middleware::from_fn(append_headers))
-        .layer(axum::middleware::from_fn(with_status_ok))
-        .layer(axum::middleware::from_fn(print_request_response))
-        .layer(TraceLayer::new_for_http())
-        .layer(session_layer);
+        .layer(axum::middleware::from_fn(login_gateway));
+
+    let gateway = Router::new()
+        .nest("/", app)
+        .nest(
+            "/api",
+            user_router::new_router().with_state(user_store.clone()),
+        )
+        .layer(
+            ServiceBuilder::new()
+                .layer(TraceLayer::new_for_http())
+                .layer(axum::middleware::from_fn(print_request_response))
+                .layer(axum::middleware::from_fn(append_headers)),
+        ) 
+        .layer(session_layer); 
 
     let addr = SocketAddr::from((CONFIG.ip, CONFIG.http_port));
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
 
     tracing::debug!("Server listening on {}", addr);
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, gateway).await.unwrap();
+}
+
+async fn login_gateway(req: Request, next: Next) -> Response {
+    match req.extensions().get::<Session>() {
+        Some(session) => match session.get::<String>("username").await {
+            Ok(Some(_)) => next.run(req).await,
+            _ => Json(StatusResponse::new_err("Unauthorized".to_owned())).into_response(),
+        },
+        None => Json(StatusResponse::new_err("Unauthorized".to_owned())).into_response(),
+    }
 }
 
 async fn append_headers(req: Request, next: Next) -> Response<Body> {
@@ -158,12 +175,6 @@ async fn append_headers(req: Request, next: Next) -> Response<Body> {
     res.headers_mut()
         .insert("x-cse356", CONFIG.submission_id.parse().unwrap());
     res
-}
-
-// what grading script doing?
-async fn with_status_ok(req: Request, next: Next) -> (StatusCode, Response<Body>) {
-    let res = next.run(req).await;
-    (StatusCode::OK, res)
 }
 
 async fn print_request_response(

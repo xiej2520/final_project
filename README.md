@@ -16,7 +16,7 @@ Example `config.toml`
 
 ```toml
 ip = [127, 0, 0, 1]
-http_port = 8000
+http_port = 80
 domain = "not-invented-here.cse356.compas.cs.stonybrook.edu"
 
 # email stuff
