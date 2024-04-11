@@ -67,7 +67,7 @@ static CONFIG: Lazy<ServerConfig> = Lazy::new(|| {
 
 pub struct ServerState {
     user_store: Arc<RwLock<user_controller::UserStore>>,
-    db_client: Arc<tokio_postgres::Client>,
+    db_client: Box<tokio_postgres::Client>,
     // no need for Arc as reqwest::Client already implements it
     tile_client: HttpClient,
     turn_client: HttpClient,
@@ -90,7 +90,7 @@ impl ServerState {
         let routing_client = HttpClient::new(&CONFIG.routing_url)?;
         Ok(Self {
             user_store: Arc::new(RwLock::new(user_store)),
-            db_client: Arc::new(db_client),
+            db_client: Box::new(db_client),
             tile_client,
             turn_client,
             routing_client,
@@ -118,7 +118,7 @@ async fn main() {
     let app = Router::new()
         .nest(
             "/api",
-            search_router::new_router().with_state(db_client.clone()),
+            search_router::new_router().with_state(Box::leak(db_client)),
         )
         .nest(
             "/api",
