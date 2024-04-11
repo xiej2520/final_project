@@ -8,8 +8,12 @@ fi
 
 FILE=$1
 
-docker run --rm --it \
+wget https://github.com/maptiler/tileserver-gl/releases/download/v1.3.0/test_data.zip
+sudo unzip test_data.zip -d /data/tileserver-gl
+
+docker run --rm -it \
   -v /data/${FILE}:/data/region.mbtiles \
+  -v /data/tileserver-gl:/data \
   -p 8080:8080 \
   maptiler/tileserver-gl \
   --file /data/region.mbtiles
