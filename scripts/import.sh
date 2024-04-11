@@ -15,6 +15,7 @@ fi
 
 docker volume create osm-data
 
+# osm2pgsql 50m
 docker run --rm \
     -v /data/${REGION}.osm.pbf:/data/region.osm.pbf \
     -v osm-data:/data/database \

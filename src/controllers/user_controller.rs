@@ -111,7 +111,7 @@ impl User {
             .build();
         match mailer.send(email).await {
             Ok(_) => Ok(verification_link),
-            Err(err) => Err(format!("Failed to send email: {}", err)),
+            Err(err) => Err(format!("Failed to send email: {err}, verification link {verification_link}")),
         }
     }
 

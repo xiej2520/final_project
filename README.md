@@ -4,15 +4,19 @@
 
 1. Run `./scripts/install_docker.sh` to install docker
 2. Run `./scripts/import.sh <region>` to import data
-3. Run `REGION=<region> docker compose up -d` to run services 
+3. Run `REGION=<region> docker compose up -d` to run services
 4. Run `./scripts/install_rust.sh` to install rust
 5. Run `cargo run --release` to run server
 
 Make sure you have a `config.toml` in the root directory.
 
+### To copy to remote machine
+
+* Run `./scripts/import.sh <region>` to import data on local machine
 * Copy `/data` directory to remote machine.
 * Use [docker-volume-snapshot](https://github.com/junedkhatri31/docker-volume-snapshot)
 to transfer `osm-data` volume to remote machine.
+* Run `REGION=<region> docker compose up -d` to run services on remote.
 
 ## Config
 
