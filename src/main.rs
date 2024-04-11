@@ -125,7 +125,6 @@ async fn main() {
     } = ServerState::new().await.expect("Something went wrong");
 
     let app = Router::new()
-        .nest_service("/", ServeDir::new("static"))
         .nest(
             "/api",
             search_router::new_router().with_state(db_client.clone()),
@@ -140,6 +139,7 @@ async fn main() {
         .layer(axum::middleware::from_fn(login_gateway));
 
     let gateway = Router::new()
+        .nest_service("/", ServeDir::new("static"))
         .nest("/", app)
         .nest(
             "/api",

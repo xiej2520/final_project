@@ -10,7 +10,7 @@ services:
       - PGPASSWORD=${PGPASSWORD:-}
   tiles:
     image: maptiler/tileserver-gl
-    command: --file /data/${REGION}.mbtiles
+    # command: --file /data/${REGION}.mbtiles
     volumes:
       - /data:/data
     ports:

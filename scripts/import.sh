@@ -31,6 +31,11 @@ docker run --rm \
     --osm-path=/data/${REGION}.osm.pbf \
     --output=/data/${REGION}.mbtiles
 
+wget https://github.com/maptiler/tileserver-gl/releases/download/v1.3.0/test_data.zip
+unzip -o test_data.zip -d /data
+sed -i "s/zurich_switzerland/${REGION}/g" /data/config.json
+rm test_data.zip /data/zurich_switzerland.mbtiles
+
 docker run --rm \
     -t -v /data:/data \
     ghcr.io/project-osrm/osrm-backend \
