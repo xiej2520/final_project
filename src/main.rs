@@ -138,7 +138,9 @@ async fn main() {
         )
         .layer(
             ServiceBuilder::new()
+                // remove for faster response
                 .layer(TraceLayer::new_for_http())
+                // remove for faster response
                 .layer(axum::middleware::from_fn(print_request_response))
                 .layer(axum::middleware::from_fn(append_headers)),
         ) 
