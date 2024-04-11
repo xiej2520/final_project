@@ -54,9 +54,9 @@ impl UserStore {
             username, email, ..
         } = &user;
         match self.users.entry(username.clone()) {
-            Entry::Occupied(_) => Err(format!("User named '{}' already exists", username)),
+            Entry::Occupied(_) => Err(format!("User named '{username}' already exists")),
             Entry::Vacant(vacant_user) => match self.usernames.entry(email.clone()) {
-                Entry::Occupied(_) => Err(format!("Email '{}' already registered", username)),
+                Entry::Occupied(_) => Err(format!("Email '{email}' already registered")),
                 Entry::Vacant(vacant_email) => {
                     vacant_email.insert(username.clone());
                     vacant_user.insert(user);
@@ -77,7 +77,7 @@ impl User {
         Self {
             username: username.to_owned(),
             password_hash,
-            email: email.replace('+', "%2b"), // replace '+' in email with "%2b"
+            email: email.to_owned(),
             key: key.clone(),
             enabled: false,
         }
@@ -86,8 +86,9 @@ impl User {
     pub async fn send_email(&self) -> Result<String, String> {
         let verification_link = format!(
             "http://{}/api/verify?email={}&key={}",
-            CONFIG.domain, self.email, self.key
+            CONFIG.domain, self.email.replace('+', "%2b"), self.key
         );
+        // replace '+' in email with "%2b"
 
         let email = Message::builder()
             .from(
