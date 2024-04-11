@@ -100,16 +100,7 @@ impl ServerState {
 
 #[tokio::main]
 async fn main() {
-    let file_appender = tracing_appender::rolling::never("./logs", Local::now().to_rfc3339());
-    let (file_writer, _guard) = tracing_appender::non_blocking(file_appender);
-    tracing::subscriber::set_global_default(
-        fmt::Subscriber::builder()
-            .with_max_level(tracing::Level::DEBUG)
-            .finish()
-            .with(fmt::Layer::default().with_writer(file_writer)),
-        // .with(fmt::Layer::default().with_writer(std::io::stderr))
-    )
-    .expect("Unable to set global tracing subscriber");
+    init_logging();
 
     let session_store = MemoryStore::default();
     let session_layer = SessionManagerLayer::new(session_store)
@@ -161,6 +152,7 @@ async fn main() {
 }
 
 async fn login_gateway(req: Request, next: Next) -> Response {
+    //return next.run(req).await;
     match req.extensions().get::<Session>() {
         Some(session) => match session.get::<String>("username").await {
             Ok(Some(_)) => next.run(req).await,
@@ -217,4 +209,18 @@ where
     }
 
     Ok(bytes)
+}
+
+fn init_logging() {
+    let file_appender = tracing_appender::rolling::never("./logs", Local::now().to_rfc3339());
+    let (file_writer, _guard) = tracing_appender::non_blocking(file_appender);
+    tracing::subscriber::set_global_default(
+        fmt::Subscriber::builder()
+            .with_max_level(tracing::Level::DEBUG)
+            //.with_max_level(tracing::Level::ERROR)
+            .finish()
+            .with(fmt::Layer::default().with_writer(file_writer)),
+        // .with(fmt::Layer::default().with_writer(std::io::stderr))
+    )
+    .expect("Unable to set global tracing subscriber");
 }
