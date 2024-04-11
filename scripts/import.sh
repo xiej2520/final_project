@@ -24,25 +24,29 @@ docker run --rm \
     overv/openstreetmap-tile-server \
     import
 
+# Create plane tiles
 docker run --rm \
-    -e JAVA_TOOL_OPTIONS="-Xmx1g" \
+    -e JAVA_TOOL_OPTIONS="-Xmx2g" \
     -v /data:/data \
     ghcr.io/onthegomap/planetiler --download \
     --osm-path=/data/${REGION}.osm.pbf \
     --output=/data/${REGION}.mbtiles
 
+# us-northeast 12.8GB RAM
 docker run --rm \
     -t -v /data:/data \
     ghcr.io/project-osrm/osrm-backend \
     osrm-extract -p /opt/car.lua \
     /data/${REGION}.osm.pbf || echo "osrm-extract failed"
 
+# us-northeast 6.4GB RAM
 docker run --rm \
     -t -v /data:/data \
     ghcr.io/project-osrm/osrm-backend \
     osrm-partition \
     /data/${REGION}.osrm || echo "osrm-partition failed"
 
+# us-northeast 5.2GB RAM
 docker run --rm \
     -t -v /data:/data \
     ghcr.io/project-osrm/osrm-backend \
