@@ -35,6 +35,7 @@ docker run --rm \
 
 wget https://github.com/maptiler/tileserver-gl/releases/download/v1.3.0/test_data.zip
 unzip -o test_data.zip -d /data
+cp static/tileserver_config.json /data/config.json
 sed -i "s/zurich_switzerland/${REGION}/g" /data/config.json
 rm test_data.zip /data/zurich_switzerland.mbtiles
 

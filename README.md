@@ -6,8 +6,7 @@
 2. Run `./scripts/import.sh <region>` to import data
 3. Run `REGION=<region> docker compose up -d` to run services
 4. Run `./scripts/install_rust.sh` to install rust
-5. Run `./scripts/run_tileserver.sh` to run tileserver
-6. Run `cargo run --release` to run server
+5. Run `cargo run --release` to run server
 
 Make sure you have a `config.toml` in the root directory.
 

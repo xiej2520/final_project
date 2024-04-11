@@ -1,0 +1,21 @@
+{
+  "options": {
+    "paths": {
+      "fonts": "fonts",
+      "styles": "styles"
+    }
+  },
+  "styles": {
+    "osm-bright": {
+      "style": "osm-bright/style.json"
+    },
+    "klokantech-basic": {
+      "style": "klokantech-basic/style.json"
+    }
+  },
+  "data": {
+    "openmaptiles": {
+      "mbtiles": "zurich_switzerland.mbtiles"
+    }
+  }
+}
