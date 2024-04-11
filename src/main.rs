@@ -151,6 +151,7 @@ async fn main() {
                 .layer(axum::middleware::from_fn(print_request_response))
                 .layer(axum::middleware::from_fn(append_headers)),
         ) 
+        .nest_service("/", ServeDir::new("static"))
         .layer(session_layer); 
 
     let addr = SocketAddr::from((CONFIG.ip, CONFIG.http_port));

@@ -19,7 +19,7 @@ codegen-backend = "cranelift"
 
 [profile.release]
 lto = true
-codegen-units = 16
+#codegen-units = 16
 panic = "abort"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

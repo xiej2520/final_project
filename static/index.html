@@ -76,6 +76,21 @@ html, body {
 </head>
 
 <body>
+  <form id="adduser-form" action="/api/adduser" method="POST">
+    <input type="text" id="username" name="username" value="username" required>
+    <input type="password" id="password" name="password" value="password" required>
+    <input type="email" id="email" name="email" value="username@password.com" required>
+    <input type="submit" value="Add User">
+  </form>
+  <form id="login-form" action="/api/login" method="POST">
+    <input type="text" id="login-username" name="username" value="username" required>
+    <input type="password" id="login-password" name="password" value="password" required>
+    <input type="submit" value="Login">
+  </form>
+  <form id="logout-form" action="/api/logout" method="POST">
+    <input type="submit" value="Logout">
+  </form>
+
   <form id="search-form" action="/api/search" method="POST">
     <div id="manual-bbox">
       <span id="manual-bbox-label"  onclick="toggleBBoxPanel()">Map View BBox</span>
@@ -151,6 +166,42 @@ function toggleBBoxPanel() {
   <table>
     <tbody id="responses"></tbody>
   </table>
+<script>
+function add_hook(id) {
+  const form = document.getElementById(id);
+  form.onsubmit = (event) => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    fetch(form.action, {
+      method: 'POST',
+      headers: new Headers({ 'content-type': 'application/json' }),
+      body: JSON.stringify(Object.fromEntries(formData))
+    })
+      .then(async response => {
+        const json = await response.json();
+        let t = JSON.stringify(json);
+        let row = `<tr><td>${t}</td>`;
+
+        if (json.message.includes("url=")) {
+          row += `<td><a target="_blank" href=${json.message.split("url=")[1]}>Verify</a>
+            </td>`;
+        }
+        row += `</tr>`;
+        document.getElementById("responses").innerHTML += row;
+      }
+      )
+      .catch(error => {
+        document.getElementById("responses").innerHTML +=
+          `<tr><td>${JSON.stringify(error)}</td></tr>`
+      }
+      )
+  };
+}
+add_hook("adduser-form");
+add_hook("login-form");
+add_hook("logout-form");
+</script>
+
   <script>
 function renderResults(results) {
   let resultList = document.getElementById("results-list");
