@@ -11,7 +11,7 @@ use crate::controllers::convert_controller::*;
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ConvertParams {
     lat: f64,
-    lon: f64,
+    long: f64,
     zoom: f64,
 }
 
@@ -27,8 +27,8 @@ pub fn new_router() -> Router {
 
 #[debug_handler]
 pub async fn convert_handler(
-    Json(ConvertParams { lat, lon, zoom }): Json<ConvertParams>,
+    Json(ConvertParams { lat, long, zoom }): Json<ConvertParams>,
 ) -> Response {
-    let (x_tile, y_tile) = get_tile(lat, lon, zoom);
+    let (x_tile, y_tile) = get_tile(lat, long, zoom);
     Json(ConvertResponse { x_tile, y_tile }).into_response()
 }

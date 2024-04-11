@@ -4,6 +4,7 @@ services:
     command: run
     volumes:
       - osm-data:/data/database
+    shm_size: 2g
     ports:
       - "5432:5432"
     environment:
