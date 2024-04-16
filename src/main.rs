@@ -14,7 +14,7 @@ use chrono::Local;
 
 use http_body_util::BodyExt;
 
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 use tokio_postgres::NoTls;
 use tower::ServiceBuilder;
 use tracing_subscriber::fmt;
@@ -66,8 +66,8 @@ static CONFIG: Lazy<ServerConfig> = Lazy::new(|| {
 });
 
 pub struct ServerState {
-    user_store: Arc<Mutex<user_controller::UserStore>>,
-    db_client: Arc<tokio_postgres::Client>,
+    user_store: Arc<RwLock<user_controller::UserStore>>,
+    db_client: Box<tokio_postgres::Client>,
     // no need for Arc as reqwest::Client already implements it
     tile_client: HttpClient,
     turn_client: HttpClient,
@@ -89,8 +89,8 @@ impl ServerState {
         let turn_client = HttpClient::new(&CONFIG.turn_url)?;
         let routing_client = HttpClient::new(&CONFIG.routing_url)?;
         Ok(Self {
-            user_store: Arc::new(Mutex::new(user_store)),
-            db_client: Arc::new(db_client),
+            user_store: Arc::new(RwLock::new(user_store)),
+            db_client: Box::new(db_client),
             tile_client,
             turn_client,
             routing_client,
@@ -100,16 +100,7 @@ impl ServerState {
 
 #[tokio::main]
 async fn main() {
-    let file_appender = tracing_appender::rolling::never("./logs", Local::now().to_rfc3339());
-    let (file_writer, _guard) = tracing_appender::non_blocking(file_appender);
-    tracing::subscriber::set_global_default(
-        fmt::Subscriber::builder()
-            .with_max_level(tracing::Level::DEBUG)
-            .finish()
-            .with(fmt::Layer::default().with_writer(file_writer)),
-        // .with(fmt::Layer::default().with_writer(std::io::stderr))
-    )
-    .expect("Unable to set global tracing subscriber");
+    init_logging();
 
     let session_store = MemoryStore::default();
     let session_layer = SessionManagerLayer::new(session_store)
@@ -127,7 +118,7 @@ async fn main() {
     let app = Router::new()
         .nest(
             "/api",
-            search_router::new_router().with_state(db_client.clone()),
+            search_router::new_router().with_state(Box::leak(db_client)),
         )
         .nest(
             "/api",
@@ -147,11 +138,13 @@ async fn main() {
         )
         .layer(
             ServiceBuilder::new()
+                // remove for faster response
                 .layer(TraceLayer::new_for_http())
+                // remove for faster response
                 .layer(axum::middleware::from_fn(print_request_response))
                 .layer(axum::middleware::from_fn(append_headers)),
-        ) 
-        .layer(session_layer); 
+        )
+        .layer(session_layer);
 
     let addr = SocketAddr::from((CONFIG.ip, CONFIG.http_port));
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
@@ -161,6 +154,7 @@ async fn main() {
 }
 
 async fn login_gateway(req: Request, next: Next) -> Response {
+    //return next.run(req).await;
     match req.extensions().get::<Session>() {
         Some(session) => match session.get::<String>("username").await {
             Ok(Some(_)) => next.run(req).await,
@@ -217,4 +211,18 @@ where
     }
 
     Ok(bytes)
+}
+
+fn init_logging() {
+    let file_appender = tracing_appender::rolling::never("./logs", Local::now().to_rfc3339());
+    let (file_writer, _guard) = tracing_appender::non_blocking(file_appender);
+    tracing::subscriber::set_global_default(
+        fmt::Subscriber::builder()
+            .with_max_level(tracing::Level::DEBUG)
+            //.with_max_level(tracing::Level::ERROR)
+            .finish()
+            .with(fmt::Layer::default().with_writer(file_writer)),
+        // .with(fmt::Layer::default().with_writer(std::io::stderr))
+    )
+    .expect("Unable to set global tracing subscriber");
 }

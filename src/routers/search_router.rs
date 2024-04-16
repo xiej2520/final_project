@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use axum::{
     extract::State,
     response::{IntoResponse, Response},
@@ -21,13 +19,13 @@ pub struct SearchParams {
     searchTerm: String,
 }
 
-pub fn new_router() -> Router<Arc<tokio_postgres::Client>> {
+pub fn new_router() -> Router<&'static tokio_postgres::Client> {
     Router::new().route("/search", post(search_handler))
 }
 
 #[debug_handler]
 pub async fn search_handler(
-    State(client): State<Arc<tokio_postgres::Client>>,
+    State(client): State<&'static tokio_postgres::Client>,
     Json(SearchParams {
         bbox,
         onlyInBox: only_in_box,
@@ -36,7 +34,7 @@ pub async fn search_handler(
 ) -> Response {
     if only_in_box {
         match bbox {
-            Some(bbox) => match search_in_bbox(&client, bbox, &search_term).await {
+            Some(bbox) => match search_in_bbox(client, bbox, &search_term).await {
                 Ok(objs) => Json(objs).into_response(),
                 Err(e) => {
                     eprintln!("Error: {}", e);
@@ -46,7 +44,7 @@ pub async fn search_handler(
             None => Json(Vec::<InBBoxObject>::new()).into_response(),
         }
     } else {
-        match search_anywhere(&client, &search_term).await {
+        match search_anywhere(client, &search_term).await {
             Ok(objs) => Json(objs).into_response(),
             Err(e) => {
                 eprintln!("Error: {}", e);

@@ -18,7 +18,7 @@ impl HttpClient {
 
     pub async fn get(&self, path: &str) -> Result<RequestBuilder, Box<dyn Error>> {
         let url = self.base_url.join(path)?;
-        tracing::info!("GET {}", url.as_str()); 
+        tracing::info!("GET {}", url.as_str());
         Ok(self.client.get(url.as_str()))
     }
 
@@ -30,13 +30,13 @@ impl HttpClient {
 
     pub async fn put(&self, path: &str) -> Result<RequestBuilder, Box<dyn Error>> {
         let url = self.base_url.join(path)?;
-        tracing::info!("PUT {}", url.as_str()); 
+        tracing::info!("PUT {}", url.as_str());
         Ok(self.client.put(url.as_str()))
     }
 
     pub async fn delete(&self, path: &str) -> Result<RequestBuilder, Box<dyn Error>> {
         let url = self.base_url.join(path)?;
-        tracing::info!("DELETE {}", url.as_str()); 
+        tracing::info!("DELETE {}", url.as_str());
         Ok(self.client.delete(url.as_str()))
     }
 

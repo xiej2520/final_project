@@ -3,12 +3,7 @@ use axum::body::Bytes;
 use server::http_client::HttpClient;
 
 #[inline]
-pub async fn get_tile(
-    client: &HttpClient,
-    layer: i32,
-    x: i32,
-    y: i32,
-) -> Result<Bytes, String> {
+pub async fn get_tile(client: &HttpClient, layer: i32, x: i32, y: i32) -> Result<Bytes, String> {
     let url = format!("{layer}/{x}/{y}.png");
 
     let builder = match client.get(&url).await {

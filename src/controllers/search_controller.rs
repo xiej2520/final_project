@@ -75,25 +75,25 @@ FROM (
     FROM (
         (SELECT name, way FROM planet_osm_polygon
           WHERE name LIKE $5 AND ST_Intersects(way, (SELECT bbox FROM transformed_bbox))
-          LIMIT 30
+          LIMIT 50
         ) UNION ALL
         (SELECT name, way FROM planet_osm_line
           WHERE name LIKE $5 AND ST_Intersects(way, (SELECT bbox FROM transformed_bbox))
-          LIMIT 30
+          LIMIT 50
         ) UNION ALL
         (SELECT name, way FROM planet_osm_roads
           WHERE name LIKE $5 AND ST_Intersects(way, (SELECT bbox FROM transformed_bbox))
-          LIMIT 30
+          LIMIT 50
         ) UNION ALL
         (SELECT name, way FROM planet_osm_point
           WHERE name LIKE $5 AND ST_Intersects(way, (SELECT bbox FROM transformed_bbox))
-          LIMIT 30
+          LIMIT 50
         )
     ) AS relevant_tables, transformed_bbox
 ) AS intersection_query, transformed_bbox
 ORDER BY 
     distance_to_center
-LIMIT 30;
+LIMIT 50;
 "#;
 
 pub async fn search_in_bbox(
@@ -131,15 +131,15 @@ SELECT
     ST_YMax(ST_Transform(ST_Envelope(way), 4326)) AS maxLat,
     ST_XMax(ST_Transform(ST_Envelope(way), 4326)) AS maxLon
 FROM (
-    SELECT name, way FROM planet_osm_polygon WHERE name LIKE $1
+    (SELECT name, way FROM planet_osm_polygon WHERE name LIKE $1 LIMIT 50)
     UNION ALL
-    SELECT name, way FROM planet_osm_line WHERE name LIKE $1
+    (SELECT name, way FROM planet_osm_line WHERE name LIKE $1 LIMIT 50)
     UNION ALL
-    SELECT name, way FROM planet_osm_roads WHERE name LIKE $1
+    (SELECT name, way FROM planet_osm_roads WHERE name LIKE $1 LIMIT 50)
     UNION ALL
-    SELECT name, way FROM planet_osm_point WHERE name LIKE $1
+    (SELECT name, way FROM planet_osm_point WHERE name LIKE $1 LIMIT 50)
 ) AS relevant_tables
-LIMIT 30;
+LIMIT 50;
 "#;
 
 pub async fn search_anywhere(

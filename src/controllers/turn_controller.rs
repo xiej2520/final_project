@@ -71,7 +71,6 @@ pub async fn get_tile(
 
     let min_y = tl_lat.min(br_lat);
     let max_y = tl_lat.max(br_lat);
-    dbg!(min_x, max_x, min_y, max_y);
 
     // lat -> mercator y
     let ry1 = f64::ln((min_y.sin() + 1.0) / min_y.cos());
@@ -91,10 +90,8 @@ pub async fn get_tile(
 
     const EQUATOR_MM: f64 = 40.7436654315252;
     let zoom_factor_powered = VIEW_HEIGHT_HALF / (EQUATOR_MM * (vy1 - vy0));
-    dbg!(vy0, vy1, zoom_factor_powered);
 
     let resolution_vertical = 360.0 / (zoom_factor_powered * 256.0);
-    dbg!(resolution_horizontal, resolution_vertical);
 
     const PADDING_FACTOR: f64 = 1.2;
     let resolution = resolution_horizontal.max(resolution_vertical) * PADDING_FACTOR;
@@ -105,7 +102,7 @@ pub async fn get_tile(
     // http://localhost:8080/styles/osm-bright/static/-74,40.5,8.4/256x256@3x.png
     let (lat, lon) = (lat.to_degrees(), lon.to_degrees());
     let url = format!("{lon},{lat},{zoom}/100x100.png");
-    
+
     let builder = match client.get(&url).await {
         Ok(builder) => builder,
         Err(e) => return Err(e.to_string()),

@@ -8,6 +8,7 @@ use std::{
 
 use chrono::Utc;
 use lettre::{AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
+use reqwest::Url;
 
 use crate::CONFIG;
 
@@ -84,11 +85,14 @@ impl User {
     }
 
     pub async fn send_email(&self) -> Result<String, String> {
-        let verification_link = format!(
-            "http://{}/api/verify?email={}&key={}",
-            CONFIG.domain, self.email.replace('+', "%2b"), self.key
-        );
-        // replace '+' in email with "%2b"
+        // escape special characters in email, including '+'
+        let verification_link = Url::parse_with_params(
+            format!("http://{}/api/verify", CONFIG.domain).as_str(),
+            &[("email", self.email.as_str()), ("key", self.key.as_str())],
+        )
+        .map_err(|e| e.to_string())?
+        .to_string();
+        //return Ok(verification_link);
 
         let email = Message::builder()
             .from(
@@ -112,7 +116,9 @@ impl User {
             .build();
         match mailer.send(email).await {
             Ok(_) => Ok(verification_link),
-            Err(err) => Err(format!("Failed to send email: {err}, verification link {verification_link}")),
+            Err(err) => Err(format!(
+                "Failed to send email: {err}, verification link {verification_link}"
+            )),
         }
     }
 
