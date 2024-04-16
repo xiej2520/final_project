@@ -4,19 +4,6 @@ use serde::{Deserialize, Serialize};
 
 use server::http_client::HttpClient;
 
-#[derive(Debug, Deserialize, Serialize)]
-pub struct Coordinates {
-    lat: f64,
-    lon: f64,
-}
-
-#[derive(Debug, Serialize)]
-pub struct PathNodeObject {
-    description: String,
-    coordinates: Coordinates,
-    distance: f64,
-}
-
 #[derive(Debug, Deserialize)]
 struct Maneuver {
     location: [f64; 2],
@@ -46,6 +33,19 @@ impl fmt::Display for Maneuver {
 #[derive(Debug, Deserialize)]
 struct Step {
     maneuver: Maneuver,
+    distance: f64,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Coordinates {
+    lat: f64,
+    lon: f64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PathNodeObject {
+    description: String,
+    coordinates: Coordinates,
     distance: f64,
 }
 

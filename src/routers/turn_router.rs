@@ -6,10 +6,10 @@ use axum::{
     Json, Router,
 };
 use axum_macros::debug_handler;
-use server::status_response::StatusResponse;
 
 use crate::controllers::turn_controller::*;
 use server::http_client::HttpClient;
+use server::status_response::StatusResponse;
 
 pub fn new_router() -> Router<HttpClient> {
     Router::new().route("/turn/:TL/:BR", get(turn_handler))

@@ -1,3 +1,4 @@
+pub mod address_controller;
 pub mod convert_controller;
 pub mod route_controller; 
 pub mod search_controller;

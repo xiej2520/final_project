@@ -6,10 +6,10 @@ use axum::{
     Json, Router,
 };
 use axum_macros::debug_handler;
-use server::status_response::StatusResponse;
 
 use crate::tile_controller::*;
 use server::http_client::HttpClient;
+use server::status_response::StatusResponse;
 
 pub fn new_router() -> Router<HttpClient> {
     Router::new().route("/tiles/:layer/:v/:h", get(tile_handler))
