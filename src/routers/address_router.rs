@@ -9,7 +9,8 @@ use axum_macros::debug_handler;
 use serde::Deserialize;
 
 use crate::controllers::address_controller::*;
-use server::{http_client::HttpClient, status_response::StatusResponse};
+use server::http_client::HttpClient;
+use server::status_response::StatusResponse;
 
 #[derive(Debug, Deserialize)]
 pub struct AddressParams {

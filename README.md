@@ -24,7 +24,7 @@ Example `config.toml`
 
 ```toml
 ip = [127, 0, 0, 1]
-http_port = 80
+http_port = 8000
 domain = "not-invented-here.cse356.compas.cs.stonybrook.edu"
 
 # email stuff
@@ -32,12 +32,12 @@ relay_ip = [130, 245, 171, 151]
 relay_port = 11587
 
 # urls for services (trailing slash significant!)
-db_url = "postgresql://renderer:renderer@localhost:5432/gis"
-tile_url = "http://localhost:8080/styles/osm-bright/256/"
-turn_url = "http://localhost:8080/styles/osm-bright/static/"
+search_url = "http://localhost:8080"
+tile_url = "http://localhost:8081/styles/osm-bright/256/"
+turn_url = "http://localhost:8081/styles/osm-bright/static/"
 routing_url = "http://localhost:5000/route/v1/driving/"
 
-submission_id = "65b54162aa2cfc5a3dea55fe"
+submission_id = "foobarbaz123"
 ```
 
 ## Notes

@@ -13,17 +13,17 @@ if [ ! -f "/data/${REGION}.osm.pbf" ]; then
     wget -P /data "https://grading.cse356.compas.cs.stonybrook.edu/data/${REGION}.osm.pbf"
 fi
 
-docker volume create osm-data
+# docker volume create osm-data
 
 # osm2pgsql 50m
-docker run --rm \
-    -v /data/${REGION}.osm.pbf:/data/region.osm.pbf \
-    -v osm-data:/data/database \
-    -e THREADS=8 \
-    -e "FLAT_NODES=enabled" \
-    --shm-size="4gb" \
-    overv/openstreetmap-tile-server \
-    import
+# docker run --rm \
+#     -v /data/${REGION}.osm.pbf:/data/region.osm.pbf \
+#     -v osm-data:/data/database \
+#     -e THREADS=8 \
+#     -e "FLAT_NODES=enabled" \
+#     --shm-size="4gb" \
+#     overv/openstreetmap-tile-server \
+#     import
 
 # Create plane tiles
 docker run --rm \

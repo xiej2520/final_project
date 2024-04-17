@@ -36,7 +36,7 @@ impl From<AddressQuery> for AddressObject {
 }
 
 pub async fn get_address(client: &HttpClient, lat: f64, lon: f64) -> Result<AddressObject, String> {
-    let url = format!("reverse?lat={}&lon={}&format=jsonv2", lat, lon);
+    let url = format!("reverse?lat={lat}&lon={lon}&format=jsonv2");
 
     let builder = match client.get(&url).await {
         Ok(builder) => builder,

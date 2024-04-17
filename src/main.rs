@@ -15,7 +15,6 @@ use chrono::Local;
 use http_body_util::BodyExt;
 
 use tokio::sync::RwLock;
-use tokio_postgres::NoTls;
 use tower::ServiceBuilder;
 use tracing_subscriber::fmt;
 use tracing_subscriber::layer::SubscriberExt;
@@ -38,7 +37,7 @@ struct ServerConfig {
     domain: String,
     relay_ip: [u8; 4],
     relay_port: u16,
-    db_url: String,
+    search_url: String,
     tile_url: String,
     turn_url: String,
     routing_url: String,
@@ -57,7 +56,8 @@ static CONFIG: Lazy<ServerConfig> = Lazy::new(|| {
         domain: config.get("domain").unwrap(),
         relay_ip: config.get("relay_ip").unwrap(),
         relay_port: config.get("relay_port").unwrap(),
-        db_url: config.get("db_url").unwrap(),
+        // db_url: config.get("db_url").unwrap(),
+        search_url: config.get("search_url").unwrap(),
         tile_url: config.get("tile_url").unwrap(),
         turn_url: config.get("turn_url").unwrap(),
         routing_url: config.get("routing_url").unwrap(),
@@ -67,8 +67,8 @@ static CONFIG: Lazy<ServerConfig> = Lazy::new(|| {
 
 pub struct ServerState {
     user_store: Arc<RwLock<user_controller::UserStore>>,
-    db_client: Box<tokio_postgres::Client>,
     // no need for Arc as reqwest::Client already implements it
+    search_client: HttpClient,
     tile_client: HttpClient,
     turn_client: HttpClient,
     routing_client: HttpClient,
@@ -77,20 +77,13 @@ pub struct ServerState {
 impl ServerState {
     pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
         let user_store = user_controller::UserStore::default();
-        let (db_client, db_conn) = tokio_postgres::connect(&CONFIG.db_url, NoTls)
-            .await
-            .expect("Failed to connect to postgresql server");
-        tokio::spawn(async move {
-            if let Err(e) = db_conn.await {
-                eprintln!("Connection error: {}", e);
-            }
-        });
+        let search_client = HttpClient::new(&CONFIG.search_url)?;
         let tile_client = HttpClient::new(&CONFIG.tile_url)?;
         let turn_client = HttpClient::new(&CONFIG.turn_url)?;
         let routing_client = HttpClient::new(&CONFIG.routing_url)?;
         Ok(Self {
             user_store: Arc::new(RwLock::new(user_store)),
-            db_client: Box::new(db_client),
+            search_client,
             tile_client,
             turn_client,
             routing_client,
@@ -109,24 +102,34 @@ async fn main() {
 
     let ServerState {
         user_store,
-        db_client,
+        search_client,
         tile_client,
         turn_client,
         routing_client,
     } = ServerState::new().await.expect("Something went wrong");
 
     let app = Router::new()
-        .nest(
-            "/api",
-            search_router::new_router().with_state(Box::leak(db_client)),
-        )
-        .nest(
-            "/api",
-            route_router::new_router().with_state(routing_client),
-        )
         .nest("/", convert_router::new_router())
-        .nest("/", tile_router::new_router().with_state(tile_client))
-        .nest("/", turn_router::new_router().with_state(turn_client))
+        .nest(
+            "/api",
+            search_router::new_router().with_state(search_client.clone()),
+        )
+        .nest(
+            "/api",
+            address_router::new_router().with_state(search_client.clone()),
+        )
+        .nest(
+            "/api",
+            route_router::new_router().with_state(routing_client.clone()),
+        )
+        .nest(
+            "/",
+            tile_router::new_router().with_state(tile_client.clone()),
+        )
+        .nest(
+            "/",
+            turn_router::new_router().with_state(turn_client.clone()),
+        )
         .layer(axum::middleware::from_fn(login_gateway));
 
     let gateway = Router::new()

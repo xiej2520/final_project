@@ -1,5 +1,14 @@
 use serde::{Deserialize, Serialize};
-use tokio_postgres::Client;
+use server::http_client::HttpClient;
+
+#[derive(Debug, Deserialize)]
+#[allow(non_snake_case)]
+struct SearchQuery {
+    lat: String,
+    lon: String,
+    display_name: String,
+    boundingbox: [String; 4],
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 #[allow(non_snake_case)]
@@ -22,13 +31,13 @@ pub struct InBBoxObject {
     coordinates: Coordinates,
 }
 
-impl From<tokio_postgres::Row> for InBBoxObject {
-    fn from(row: tokio_postgres::Row) -> Self {
+impl From<SearchQuery> for InBBoxObject {
+    fn from(query: SearchQuery) -> Self {
         Self {
-            name: row.get("name"),
+            name: query.display_name,
             coordinates: Coordinates {
-                lat: row.get("lat"),
-                lon: row.get("lon"),
+                lat: query.lat.parse().unwrap(),
+                lon: query.lon.parse().unwrap(),
             },
         }
     }
@@ -41,63 +50,26 @@ pub struct AnywhereObject {
     bbox: BoundingBox,
 }
 
-impl From<tokio_postgres::Row> for AnywhereObject {
-    fn from(row: tokio_postgres::Row) -> Self {
+impl From<SearchQuery> for AnywhereObject {
+    fn from(query: SearchQuery) -> Self {
         Self {
-            name: row.get("name"),
+            name: query.display_name,
             coordinates: Coordinates {
-                lat: row.get("centroidLat"),
-                lon: row.get("centroidLon"),
+                lat: query.lat.parse().unwrap(),
+                lon: query.lon.parse().unwrap(),
             },
             bbox: BoundingBox {
-                minLat: row.get("minLat"),
-                minLon: row.get("minLon"),
-                maxLat: row.get("maxLat"),
-                maxLon: row.get("maxLon"),
+                minLat: query.boundingbox[0].parse().unwrap(),
+                minLon: query.boundingbox[2].parse().unwrap(),
+                maxLat: query.boundingbox[1].parse().unwrap(),
+                maxLon: query.boundingbox[3].parse().unwrap(),
             },
         }
     }
 }
 
-const BBOX_SQL_QUERY: &str = r#"
-WITH transformed_bbox AS (
-    SELECT ST_Transform(ST_MakeEnvelope($1, $2, $3, $4, 4326), 3857) AS bbox
-)
-SELECT 
-    name,
-    ST_Y(ST_Transform(ST_Centroid(intersection_geom), 4326)) AS lat,
-    ST_X(ST_Transform(ST_Centroid(intersection_geom), 4326)) AS lon,
-    ST_Distance(ST_Centroid(intersection_geom), ST_Centroid(transformed_bbox.bbox)) AS distance_to_center
-FROM (
-    SELECT 
-        name,
-        ST_Intersection(way, transformed_bbox.bbox) AS intersection_geom
-    FROM (
-        (SELECT name, way FROM planet_osm_polygon
-          WHERE name LIKE $5 AND ST_Intersects(way, (SELECT bbox FROM transformed_bbox))
-          LIMIT 50
-        ) UNION ALL
-        (SELECT name, way FROM planet_osm_line
-          WHERE name LIKE $5 AND ST_Intersects(way, (SELECT bbox FROM transformed_bbox))
-          LIMIT 50
-        ) UNION ALL
-        (SELECT name, way FROM planet_osm_roads
-          WHERE name LIKE $5 AND ST_Intersects(way, (SELECT bbox FROM transformed_bbox))
-          LIMIT 50
-        ) UNION ALL
-        (SELECT name, way FROM planet_osm_point
-          WHERE name LIKE $5 AND ST_Intersects(way, (SELECT bbox FROM transformed_bbox))
-          LIMIT 50
-        )
-    ) AS relevant_tables, transformed_bbox
-) AS intersection_query, transformed_bbox
-ORDER BY 
-    distance_to_center
-LIMIT 50;
-"#;
-
 pub async fn search_in_bbox(
-    client: &Client,
+    client: &HttpClient,
     BoundingBox {
         minLat: min_lat,
         minLon: min_lon,
@@ -105,52 +77,51 @@ pub async fn search_in_bbox(
         maxLon: max_lon,
     }: BoundingBox,
     search_term: &str,
-) -> Result<Vec<InBBoxObject>, tokio_postgres::Error> {
-    let stmt = client.prepare(BBOX_SQL_QUERY).await?;
-    // match any containing, build an index
-    let search_term = format!("%{search_term}%");
-    tracing::info!("Searching for {search_term}");
+) -> Result<Vec<InBBoxObject>, String> {
+    let url = format!(
+        "search?q={search_term}&viewbox={min_lon},{min_lat},{max_lon},{max_lat}&bounded=1&format=jsonv2"
+    );
 
-    let rows = client
-        .query(
-            &stmt,
-            &[&min_lon, &min_lat, &max_lon, &max_lat, &search_term],
-        )
-        .await?;
+    let builder = match client.get(&url).await {
+        Ok(builder) => builder,
+        Err(e) => return Err(e.to_string()),
+    };
+    let response = match builder.send().await {
+        Ok(response) => response,
+        Err(e) => return Err(e.to_string()),
+    };
+    let json: serde_json::Value = match response.json().await {
+        Ok(json) => json,
+        Err(e) => return Err(e.to_string()),
+    };
 
-    Ok(rows.into_iter().map(InBBoxObject::from).collect())
+    match serde_json::from_value::<Vec<SearchQuery>>(json) {
+        Ok(queries) => Ok(queries.into_iter().map(InBBoxObject::from).collect()),
+        Err(e) => Err(e.to_string()),
+    } 
 }
 
-const ANYWHERE_SQL_QUERY: &str = r#"
-SELECT 
-    name,
-    ST_Y(ST_Transform(ST_Centroid(way), 4326)) AS centroidLat,
-    ST_X(ST_Transform(ST_Centroid(way), 4326)) AS centroidLon,
-    ST_YMin(ST_Transform(ST_Envelope(way), 4326)) AS minLat,
-    ST_XMin(ST_Transform(ST_Envelope(way), 4326)) AS minLon,
-    ST_YMax(ST_Transform(ST_Envelope(way), 4326)) AS maxLat,
-    ST_XMax(ST_Transform(ST_Envelope(way), 4326)) AS maxLon
-FROM (
-    (SELECT name, way FROM planet_osm_polygon WHERE name LIKE $1 LIMIT 50)
-    UNION ALL
-    (SELECT name, way FROM planet_osm_line WHERE name LIKE $1 LIMIT 50)
-    UNION ALL
-    (SELECT name, way FROM planet_osm_roads WHERE name LIKE $1 LIMIT 50)
-    UNION ALL
-    (SELECT name, way FROM planet_osm_point WHERE name LIKE $1 LIMIT 50)
-) AS relevant_tables
-LIMIT 50;
-"#;
-
 pub async fn search_anywhere(
-    client: &Client,
+    client: &HttpClient,
     search_term: &str,
-) -> Result<Vec<AnywhereObject>, tokio_postgres::Error> {
-    let stmt = client.prepare(ANYWHERE_SQL_QUERY).await?;
-    let search_term = format!("%{search_term}%");
-    tracing::info!("Searching for {search_term}");
+) -> Result<Vec<AnywhereObject>, String> {
+    let url = format!("search?q={search_term}&format=jsonv2"); 
 
-    let rows = client.query(&stmt, &[&search_term]).await?;
+    let builder = match client.get(&url).await {
+        Ok(builder) => builder,
+        Err(e) => return Err(e.to_string()),
+    };
+    let response = match builder.send().await {
+        Ok(response) => response,
+        Err(e) => return Err(e.to_string()),
+    };
+    let json: serde_json::Value = match response.json().await {
+        Ok(json) => json,
+        Err(e) => return Err(e.to_string()),
+    };
 
-    Ok(rows.into_iter().map(AnywhereObject::from).collect())
+    match serde_json::from_value::<Vec<SearchQuery>>(json) {
+        Ok(queries) => Ok(queries.into_iter().map(AnywhereObject::from).collect()),
+        Err(e) => Err(e.to_string()),
+    } 
 }

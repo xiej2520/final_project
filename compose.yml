@@ -1,22 +1,21 @@
 services:
-  database:
-    image: overv/openstreetmap-tile-server
-    command: run
+  nominatim:
+    image: mediagis/nominatim:4.4
     volumes:
-      - osm-data:/data/database
-    shm_size: 2g
+      - nominatim-data:/var/lib/postgresql/14/main
+      - nominatim-flatnodes:/nominatim/flatnode
     ports:
-      - "5432:5432"
+      - "8080:8080"
     environment:
-      - PGPASSWORD=${PGPASSWORD:-}
-  tiles:
+      - PBF_URL=https://grading.cse356.compas.cs.stonybrook.edu/data/${REGION}.osm.pbf
+    shm_size: '4gb'
+  tileserver:
     image: maptiler/tileserver-gl
-    # command: --file /data/${REGION}.mbtiles
     volumes:
       - /data:/data
     ports:
-      - "8080:8080"
-  routing:
+      - "8081:8080"
+  osrm-backend:
     image: ghcr.io/project-osrm/osrm-backend
     command: osrm-routed --algorithm mld /data/${REGION}.osrm
     volumes:
@@ -25,5 +24,5 @@ services:
       - "5000:5000"
 
 volumes:
-  osm-data:
-    external: true
+  nominatim-data:
+  nominatim-flatnodes:
