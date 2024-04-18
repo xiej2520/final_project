@@ -23,6 +23,7 @@ to transfer `osm-data` volume to remote machine.
 Example `config.toml`
 
 ```toml
+submission_id = "FIX THIS"
 ip = [127, 0, 0, 1]
 http_port = 8000
 domain = "not-invented-here.cse356.compas.cs.stonybrook.edu"
@@ -33,11 +34,17 @@ relay_port = 11587
 
 # urls for services (trailing slash significant!)
 search_url = "http://localhost:8080"
-tile_url = "http://localhost:8081/styles/osm-bright/256/"
 turn_url = "http://localhost:8081/styles/osm-bright/static/"
 routing_url = "http://localhost:5000/route/v1/driving/"
 
-submission_id = "foobarbaz123"
+# nginx should be serving this instead, leave it in for testing?
+tile_url = "http://localhost:8081/styles/osm-bright/256/"
+```
+
+* Compile with `debug_email` flag to disable sending emails for verification.
+
+```Shell
+cargo +nightly run -F debug_email
 ```
 
 ## Notes

@@ -1,4 +1,5 @@
 pub mod address_router;
+pub mod auth_router;
 pub mod convert_router;
 pub mod route_router;
 pub mod search_router;

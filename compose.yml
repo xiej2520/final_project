@@ -1,4 +1,12 @@
 services:
+  nginx:
+    image: nginx:latest
+    volumes:
+      - type: bind
+        source: ./scripts/nginx.conf
+        target: /etc/nginx/nginx.conf
+      - ./static:/usr/share/nginx/html
+    network_mode: host
   nominatim:
     image: mediagis/nominatim:4.4
     volumes:

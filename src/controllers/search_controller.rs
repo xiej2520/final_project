@@ -98,14 +98,14 @@ pub async fn search_in_bbox(
     match serde_json::from_value::<Vec<SearchQuery>>(json) {
         Ok(queries) => Ok(queries.into_iter().map(InBBoxObject::from).collect()),
         Err(e) => Err(e.to_string()),
-    } 
+    }
 }
 
 pub async fn search_anywhere(
     client: &HttpClient,
     search_term: &str,
 ) -> Result<Vec<AnywhereObject>, String> {
-    let url = format!("search?q={search_term}&format=jsonv2"); 
+    let url = format!("search?q={search_term}&format=jsonv2");
 
     let builder = match client.get(&url).await {
         Ok(builder) => builder,
@@ -123,5 +123,5 @@ pub async fn search_anywhere(
     match serde_json::from_value::<Vec<SearchQuery>>(json) {
         Ok(queries) => Ok(queries.into_iter().map(AnywhereObject::from).collect()),
         Err(e) => Err(e.to_string()),
-    } 
+    }
 }

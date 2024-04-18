@@ -57,7 +57,7 @@ static CONFIG: Lazy<ServerConfig> = Lazy::new(|| {
         relay_ip: config.get("relay_ip").unwrap(),
         relay_port: config.get("relay_port").unwrap(),
         // db_url: config.get_string("db_url").unwrap().leak(),
-        search_url: config.get("search_url").unwrap(),
+        search_url: config.get_string("search_url").unwrap().leak(),
         tile_url: config.get_string("tile_url").unwrap().leak(),
         turn_url: config.get_string("turn_url").unwrap().leak(),
         routing_url: config.get_string("routing_url").unwrap().leak(),
@@ -134,6 +134,7 @@ async fn main() {
 
     let gateway = Router::new()
         .nest_service("/", ServeDir::new("static"))
+        .nest("/auth", auth_router::new_router())
         .nest("/", app)
         .nest(
             "/api",

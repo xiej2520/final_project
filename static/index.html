@@ -176,25 +176,21 @@ function add_hook(id) {
       method: 'POST',
       headers: new Headers({ 'content-type': 'application/json' }),
       body: JSON.stringify(Object.fromEntries(formData))
-    })
-      .then(async response => {
-        const json = await response.json();
-        let t = JSON.stringify(json);
-        let row = `<tr><td>${t}</td>`;
+    }).then(async response => {
+      const json = await response.json();
+      let t = JSON.stringify(json);
+      let row = `<tr><td>${t}</td>`;
 
-        if (json.message.includes("url=")) {
-          row += `<td><a target="_blank" href=${json.message.split("url=")[1]}>Verify</a>
-            </td>`;
-        }
-        row += `</tr>`;
-        document.getElementById("responses").innerHTML += row;
+      if (json.message.includes("url=")) {
+        row += `<td><a target="_blank" href=${json.message.split("url=")[1]}>Verify</a>
+          </td>`;
       }
-      )
-      .catch(error => {
-        document.getElementById("responses").innerHTML +=
-          `<tr><td>${JSON.stringify(error)}</td></tr>`
-      }
-      )
+      row += `</tr>`;
+      document.getElementById("responses").innerHTML += row;
+    }).catch(error => {
+      document.getElementById("responses").innerHTML +=
+        `<tr><td>${JSON.stringify(error)}</td></tr>`
+    })
   };
 }
 add_hook("adduser-form");
