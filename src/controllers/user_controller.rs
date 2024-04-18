@@ -92,7 +92,10 @@ impl User {
         )
         .map_err(|e| e.to_string())?
         .to_string();
-        //return Ok(verification_link);
+        
+        if cfg!(feature = "debug_email") {
+            return Ok(verification_link);
+        }
 
         let email = Message::builder()
             .from(

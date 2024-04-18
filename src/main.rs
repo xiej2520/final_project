@@ -34,14 +34,14 @@ use server::{http_client::HttpClient, status_response::StatusResponse};
 struct ServerConfig {
     ip: [u8; 4],
     http_port: u16,
-    domain: String,
+    domain: &'static str,
     relay_ip: [u8; 4],
     relay_port: u16,
-    search_url: String,
-    tile_url: String,
-    turn_url: String,
-    routing_url: String,
-    submission_id: String,
+    search_url: &'static str,
+    tile_url: &'static str,
+    turn_url: &'static str,
+    routing_url: &'static str,
+    submission_id: &'static str,
 }
 
 static CONFIG: Lazy<ServerConfig> = Lazy::new(|| {
@@ -53,15 +53,15 @@ static CONFIG: Lazy<ServerConfig> = Lazy::new(|| {
     dbg!(ServerConfig {
         ip: config.get("ip").unwrap(),
         http_port: config.get("http_port").unwrap(),
-        domain: config.get("domain").unwrap(),
+        domain: config.get_string("domain").unwrap().leak(),
         relay_ip: config.get("relay_ip").unwrap(),
         relay_port: config.get("relay_port").unwrap(),
-        // db_url: config.get("db_url").unwrap(),
+        // db_url: config.get_string("db_url").unwrap().leak(),
         search_url: config.get("search_url").unwrap(),
-        tile_url: config.get("tile_url").unwrap(),
-        turn_url: config.get("turn_url").unwrap(),
-        routing_url: config.get("routing_url").unwrap(),
-        submission_id: config.get("submission_id").unwrap(),
+        tile_url: config.get_string("tile_url").unwrap().leak(),
+        turn_url: config.get_string("turn_url").unwrap().leak(),
+        routing_url: config.get_string("routing_url").unwrap().leak(),
+        submission_id: config.get_string("submission_id").unwrap().leak(),
     })
 });
 
