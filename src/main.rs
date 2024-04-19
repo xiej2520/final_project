@@ -108,7 +108,7 @@ async fn main() {
         routing_client,
     } = ServerState::new().await.expect("Something went wrong");
 
-    let app = Router::new()
+    let mut restricted_app = Router::new()
         .nest("/", convert_router::new_router())
         .nest(
             "/api",
@@ -129,26 +129,28 @@ async fn main() {
         .nest(
             "/",
             turn_router::new_router().with_state(turn_client.clone()),
-        )
-        .layer(axum::middleware::from_fn(login_gateway));
+        );
+    if !cfg!(feature = "disable_auth") {
+        restricted_app = restricted_app.layer(axum::middleware::from_fn(login_gateway));
+    }
 
-    let gateway = Router::new()
+    let mut gateway = Router::new()
         .nest_service("/", ServeDir::new("static"))
         .nest("/auth", auth_router::new_router())
-        .nest("/", app)
+        .nest("/", restricted_app)
         .nest(
             "/api",
             user_router::new_router().with_state(user_store.clone()),
         )
-        .layer(
+        .layer(session_layer)
+        .layer(axum::middleware::from_fn(append_headers));
+    if !cfg!(feature = "disable_logs") {
+        gateway = gateway.layer(
             ServiceBuilder::new()
-                // remove for faster response
                 .layer(TraceLayer::new_for_http())
-                // remove for faster response
-                .layer(axum::middleware::from_fn(print_request_response))
-                .layer(axum::middleware::from_fn(append_headers)),
-        )
-        .layer(session_layer);
+                .layer(axum::middleware::from_fn(print_request_response)),
+        );
+    }
 
     let addr = SocketAddr::from((CONFIG.ip, CONFIG.http_port));
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
@@ -158,7 +160,6 @@ async fn main() {
 }
 
 async fn login_gateway(req: Request, next: Next) -> Response {
-    //return next.run(req).await;
     match req.extensions().get::<Session>() {
         Some(session) => match session.get::<String>("username").await {
             Ok(Some(_)) => next.run(req).await,
@@ -218,6 +219,9 @@ where
 }
 
 fn init_logging() {
+    if cfg!(feature = "disable_logs") {
+        return;
+    }
     let file_appender = tracing_appender::rolling::never("./logs", Local::now().to_rfc3339());
     let (file_writer, _guard) = tracing_appender::non_blocking(file_appender);
     tracing::subscriber::set_global_default(

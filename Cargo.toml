@@ -23,7 +23,9 @@ lto = true
 panic = "abort"
 
 [features]
-debug_email = []
+disable_email = []
+disable_auth = []
+disable_logs = []
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

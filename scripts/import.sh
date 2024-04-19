@@ -1,68 +1,37 @@
 #!/bin/bash
 
+set -e
+DIR=$(realpath "$(dirname "${BASH_SOURCE[0]}")")
+
 if [ "$#" -ne 1 ]; then
   echo "Usage: $0 pbf_url"
-  echo "  pbf_url: The url of the pbf file to download."
-  exit 1
+  echo "  pbf_url: The url of the pbf file to download, or region name."
+    exit 1
 fi
 
-PBF_URL=$1
-PBF_NAME=$(basename "$1")
-REGION=${PBF_NAME%%.*}
+if [[ $1 == http?(s)://*.osm.pbf ]];
+then
+  # URL parameter
+  PBF_URL=$1
+  PBF_FILENAME=$(basename "$1")
+  REGION=${PBF_FILENAME%%.*}
+else
+  # region parameter
+  REGION=$1
+  PBF_FILENAME="$REGION.osm.pbf"
+  PBF_URL="https://grading.cse356.compas.cs.stonybrook.edu/data/$PBF_FILENAME"
+fi
 
 # Download the data
-if [ ! -f "/data/${PBF_NAME}" ]; then
-  wget -P /data "${PBF_URL}"
+if [ ! -f "/data/${PBF_FILENAME}" ]; then
+  wget -P /data $PBF_URL
 fi
 
-# Import nominatim data
-IMPORT_FINISHED=/var/lib/postgresql/14/main/import-finished
+echo "RUNNING " $DIR/import_osrm.sh $REGION
+$DIR/import_osrm.sh $REGION
 
-docker volume create nominatim-data
-docker volume create nominatim-flatnode
+echo "RUNNING " $DIR/import_tiles.sh $REGION
+$DIR/import_tiles.sh $REGION
 
-docker run --rm \
-  -v /data:/data \
-  -v nominatim-data2:/var/lib/postgresql/14/main \
-  -v nominatim-flatnode:/nominatim/flatnode \
-  -e PBF_PATH="/data/${PBF_NAME}" \
-  -e FREEZE=true \
-  mediagis/nominatim:4.4 \
-  /bin/bash -c "/app/config.sh && useradd -m nominatim && /app/init.sh && touch ${IMPORT_FINISHED}"
-
-docker volume rm nominatim-flatnode # flatnodes unneeded after import
-
-# Create plane tiles
-docker run --rm \
-  -e JAVA_TOOL_OPTIONS="-Xmx2g" \
-  -v /data:/data \
-  ghcr.io/onthegomap/planetiler --download \
-  --osm-path=/data/${PBF_NAME} \
-  --output=/data/${REGION}.mbtiles
-
-wget https://github.com/maptiler/tileserver-gl/releases/download/v1.3.0/test_data.zip
-unzip -o test_data.zip -d /data
-cp static/tileserver_config.json /data/config.json
-sed -i "s/zurich_switzerland/${REGION}/g" /data/config.json
-rm test_data.zip /data/zurich_switzerland.mbtiles
-
-# us-northeast 12.8GB RAM
-docker run --rm \
-  -t -v /data:/data \
-  ghcr.io/project-osrm/osrm-backend \
-  osrm-extract -p /opt/car.lua \
-  /data/${PBF_NAME} || echo "osrm-extract failed"
-
-# us-northeast 6.4GB RAM
-docker run --rm \
-  -t -v /data:/data \
-  ghcr.io/project-osrm/osrm-backend \
-  osrm-partition \
-  /data/${REGION}.osrm || echo "osrm-partition failed"
-
-# us-northeast 5.2GB RAM
-docker run --rm \
-  -t -v /data:/data \
-  ghcr.io/project-osrm/osrm-backend \
-  osrm-customize \
-  /data/${REGION}.osrm || echo "osrm-customize failed"
+echo "RUNNING " $DIR/import_nominatim.sh $REGION
+$DIR/import_nominatim.sh $REGION

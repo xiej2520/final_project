@@ -92,8 +92,8 @@ impl User {
         )
         .map_err(|e| e.to_string())?
         .to_string();
-        
-        if cfg!(feature = "debug_email") {
+
+        if cfg!(feature = "disable_email") {
             return Ok(verification_link);
         }
 

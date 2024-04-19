@@ -41,10 +41,13 @@ routing_url = "http://localhost:5000/route/v1/driving/"
 tile_url = "http://localhost:8081/styles/osm-bright/256/"
 ```
 
-* Compile with `debug_email` flag to disable sending emails for verification.
+* Compile with `disable_email` flag to disable sending emails for verification.
+* Compile with `disable_auth` flag to disable authentication requirement for
+endpoints.
+* Compile with `disable_logs` flag to disable tracing logs.
 
 ```Shell
-cargo +nightly run -F debug_email
+cargo +nightly run -F disable_email -F disable_auth
 ```
 
 ## Notes

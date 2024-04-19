@@ -9,6 +9,9 @@ pub fn new_router() -> Router {
 
 #[debug_handler]
 pub async fn auth_handler(session: Session) -> StatusCode {
+    if cfg!(feature = "disable_auth") {
+        return StatusCode::OK;
+    }
     match session.get::<String>("username").await.unwrap() {
         Some(_) => StatusCode::OK,
         None => StatusCode::UNAUTHORIZED,
