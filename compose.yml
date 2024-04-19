@@ -12,7 +12,6 @@ services:
     volumes:
       - /data:/data
       - nominatim-data:/var/lib/postgresql/14/main
-      - nominatim-flatnode:/nominatim/flatnode
     ports:
       - "8080:8080"
     environment:
@@ -33,6 +32,4 @@ services:
 
 volumes:
   nominatim-data:
-    external: true
-  nominatim-flatnode:
     external: true
