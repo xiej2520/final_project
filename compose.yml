@@ -10,13 +10,13 @@ services:
   nominatim:
     image: mediagis/nominatim:4.4
     volumes:
+      - /data:/data
       - nominatim-data:/var/lib/postgresql/14/main
-      - nominatim-flatnodes:/nominatim/flatnode
+      - nominatim-flatnode:/nominatim/flatnode
     ports:
       - "8080:8080"
     environment:
-      - PBF_URL=https://grading.cse356.compas.cs.stonybrook.edu/data/${REGION}.osm.pbf
-    shm_size: '4gb'
+      - PBF_PATH=/data/${REGION}.osm.pbf
   tileserver:
     image: maptiler/tileserver-gl
     volumes:
@@ -33,4 +33,6 @@ services:
 
 volumes:
   nominatim-data:
-  nominatim-flatnodes:
+    external: true
+  nominatim-flatnode:
+    external: true
