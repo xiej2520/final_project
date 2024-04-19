@@ -1,6 +1,6 @@
+use crate::http_client::HttpClient;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use server::http_client::HttpClient;
 
 #[derive(Debug, Deserialize)]
 struct AddressQuery {

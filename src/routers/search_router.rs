@@ -9,8 +9,8 @@ use axum_macros::debug_handler;
 use serde::Deserialize;
 
 use crate::controllers::search_controller::*;
-use server::http_client::HttpClient;
-use server::status_response::StatusResponse;
+use crate::http_client::HttpClient;
+use crate::status_response::StatusResponse;
 
 #[derive(Debug, Deserialize)]
 #[allow(non_snake_case)]

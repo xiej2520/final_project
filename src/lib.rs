@@ -1,3 +1,119 @@
+pub mod controllers;
 pub mod http_client;
 pub mod parse_form;
+pub mod routers;
 pub mod status_response;
+
+use axum::{
+    body::{Body, Bytes},
+    http::StatusCode,
+    response::Response,
+};
+use axum::{extract::Request, middleware::Next};
+use chrono::Local;
+use config::Config;
+use http_body_util::BodyExt;
+use once_cell::sync::Lazy;
+use tracing_subscriber::fmt;
+use tracing_subscriber::layer::SubscriberExt;
+
+#[derive(Debug)]
+pub struct ServerConfig {
+    pub ip: [u8; 4],
+    pub http_port: u16,
+    pub domain: &'static str,
+    pub relay_ip: [u8; 4],
+    pub relay_port: u16,
+    pub search_url: &'static str,
+    pub tile_url: &'static str,
+    pub turn_url: &'static str,
+    pub routing_url: &'static str,
+    pub submission_id: &'static str,
+}
+
+pub static CONFIG: Lazy<ServerConfig> = Lazy::new(|| {
+    let config = Config::builder()
+        .add_source(config::File::with_name("config.toml"))
+        .build()
+        .unwrap();
+
+    dbg!(ServerConfig {
+        ip: config.get("ip").unwrap(),
+        http_port: config.get("http_port").unwrap(),
+        domain: config.get_string("domain").unwrap().leak(),
+        relay_ip: config.get("relay_ip").unwrap(),
+        relay_port: config.get("relay_port").unwrap(),
+        // db_url: config.get_string("db_url").unwrap().leak(),
+        search_url: config.get_string("search_url").unwrap().leak(),
+        tile_url: config.get_string("tile_url").unwrap().leak(),
+        turn_url: config.get_string("turn_url").unwrap().leak(),
+        routing_url: config.get_string("routing_url").unwrap().leak(),
+        submission_id: config.get_string("submission_id").unwrap().leak(),
+    })
+});
+
+pub async fn append_headers(req: Request, next: Next) -> Response<Body> {
+    let mut res = next.run(req).await;
+    res.headers_mut()
+        .insert("x-cse356", CONFIG.submission_id.parse().unwrap());
+    res
+}
+
+pub async fn print_request_response(
+    req: Request,
+    next: Next,
+) -> Result<Response<Body>, (StatusCode, String)> {
+    let (parts, body) = req.into_parts();
+    let bytes = buffer_and_print("request", body).await?;
+    let req = Request::from_parts(parts, Body::from(bytes));
+
+    let res = next.run(req).await;
+
+    let (parts, body) = res.into_parts();
+    let bytes = buffer_and_print("response", body).await?;
+    let res = Response::from_parts(parts, Body::from(bytes));
+
+    Ok(res)
+}
+
+pub async fn buffer_and_print<B>(direction: &str, body: B) -> Result<Bytes, (StatusCode, String)>
+where
+    B: axum::body::HttpBody<Data = Bytes>,
+    B::Error: std::fmt::Display,
+{
+    let bytes = match body.collect().await {
+        Ok(collected) => collected.to_bytes(),
+        Err(err) => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                format!("failed to read {direction} body: {err}"),
+            ));
+        }
+    };
+
+    if let Ok(body) = std::str::from_utf8(&bytes) {
+        let count = body.len();
+        tracing::debug!("{direction} body: {count} bytes = {body:?}");
+    } else {
+        tracing::debug!("{direction} body is not UTF-8");
+    }
+
+    Ok(bytes)
+}
+
+pub fn init_logging() {
+    if cfg!(feature = "disable_logs") {
+        return;
+    }
+    let file_appender = tracing_appender::rolling::never("./logs", Local::now().to_rfc3339());
+    let (file_writer, _guard) = tracing_appender::non_blocking(file_appender);
+    tracing::subscriber::set_global_default(
+        fmt::Subscriber::builder()
+            .with_max_level(tracing::Level::DEBUG)
+            //.with_max_level(tracing::Level::ERROR)
+            .finish()
+            .with(fmt::Layer::default().with_writer(file_writer)),
+        // .with(fmt::Layer::default().with_writer(std::io::stderr))
+    )
+    .expect("Unable to set global tracing subscriber");
+}

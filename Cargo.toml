@@ -5,6 +5,7 @@ cargo-features = ["codegen-backend"]
 name = "server"
 version = "0.1.0"
 edition = "2021"
+default-run = "server"
 
 # cargo +nightly build --profile=fast-dev-linux
 [profile.fast-dev-linux]

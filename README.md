@@ -26,9 +26,9 @@ Example `config.toml`
 submission_id = "FIX THIS"
 ip = [127, 0, 0, 1]
 http_port = 8000
-domain = "not-invented-here.cse356.compas.cs.stonybrook.edu"
 
 # email stuff
+domain = "not-invented-here.cse356.compas.cs.stonybrook.edu"
 relay_ip = [130, 245, 171, 151]
 relay_port = 11587
 

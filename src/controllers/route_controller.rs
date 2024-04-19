@@ -2,7 +2,7 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use server::http_client::HttpClient;
+use crate::http_client::HttpClient;
 
 #[derive(Debug, Deserialize)]
 struct Maneuver {
