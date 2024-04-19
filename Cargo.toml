@@ -19,7 +19,7 @@ incremental = true
 codegen-backend = "cranelift"
 
 [profile.release]
-lto = true
+#lto = true
 #codegen-units = 16
 panic = "abort"
 
