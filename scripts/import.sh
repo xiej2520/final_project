@@ -1,37 +1,131 @@
 #!/bin/bash
 
-set -e
-DIR=$(realpath "$(dirname "${BASH_SOURCE[0]}")")
+set -euo pipefail
 
-if [ "$#" -ne 1 ]; then
-  echo "Usage: $0 pbf_url"
-  echo "  pbf_url: The url of the pbf file to download, or region name."
-    exit 1
+function usage() {
+>&2 cat << EOF
+Usage: $0
+  [ --all ]
+  [ --nominatim ]
+  [ --tileserver ] 
+  [ --osrm-backend ]
+  [ --region <region> ]
+  [ --url <pbf_url> ]
+EOF
+exit 1
+}
+
+IMPORT_NOMINATIM=0
+IMPORT_OSRM_BACKEND=0
+IMPORT_TILESERVER=0
+REGION=
+PBF_URL=
+
+OPTIONS=$(getopt -o "" --long all,help,nominatim,osrm-backend,tileserver,region:,url: -- "$@")
+if [[ $? -gt 0 ]]; then
+  usage
 fi
 
-if [[ $1 == http?(s)://*.osm.pbf ]];
-then
-  # URL parameter
-  PBF_URL=$1
-  PBF_FILENAME=$(basename "$1")
+eval set -- ${OPTIONS}
+while :
+do
+  case $1 in
+    --all)
+      IMPORT_NOMINATIM=1
+      IMPORT_OSRM_BACKEND=1
+      IMPORT_TILESERVER=1
+      shift
+      ;;
+    --help)         usage                   ; shift   ;;
+    --nominatim)    IMPORT_NOMINATIM=1      ; shift   ;;
+    --osrm-backend) IMPORT_OSRM_BACKEND=1   ; shift   ;;
+    --tileserver)   IMPORT_TILESERVER=1     ; shift   ;;
+    --region)       REGION=$2               ; shift 2 ;;
+    --url)          PBF_URL=$2              ; shift 2 ;;
+    # -- means the end of the arguments; drop this, and break out of the while loop
+    --) shift; break ;;
+    *) >&2 echo Unsupported option: $1
+       usage ;;
+  esac
+done
+
+if [[ "$REGION" == "" && "$PBF_URL" == "" ]] || [[ "$REGION" != "" && "$PBF_URL" != "" ]]; then
+  usage
+elif [[ "$REGION" != "" ]]; then
+  PBF_FILENAME="${REGION}.osm.pbf"
+  PBF_URL="https://grading.cse356.compas.cs.stonybrook.edu/data/${PBF_FILENAME}"
+elif [[ "$PBF_URL" != "" ]]; then
+  PBF_FILENAME=$(basename "$PBF_URL")
   REGION=${PBF_FILENAME%%.*}
-else
-  # region parameter
-  REGION=$1
-  PBF_FILENAME="$REGION.osm.pbf"
-  PBF_URL="https://grading.cse356.compas.cs.stonybrook.edu/data/$PBF_FILENAME"
 fi
 
 # Download the data
-if [ ! -f "/data/${PBF_FILENAME}" ]; then
+if [[ ! -f "/data/${PBF_FILENAME}" ]]; then
   wget -P /data $PBF_URL
 fi
 
-echo "RUNNING " $DIR/import_osrm.sh $REGION
-$DIR/import_osrm.sh $REGION
+if [[ $IMPORT_NOMINATIM -eq 1 ]]; then
+  IMPORT_FINISHED=/var/lib/postgresql/14/main/import-finished
 
-echo "RUNNING " $DIR/import_tiles.sh $REGION
-$DIR/import_tiles.sh $REGION
+  docker volume create nominatim-data
+  docker volume create nominatim-flatnode
 
-echo "RUNNING " $DIR/import_nominatim.sh $REGION
-$DIR/import_nominatim.sh $REGION
+  docker run --rm \
+    -v /data:/data \
+    -v nominatim-data:/var/lib/postgresql/14/main \
+    -v nominatim-flatnode:/nominatim/flatnode \
+    -e PBF_PATH="/data/${PBF_FILENAME}" \
+    -e FREEZE=true \
+    mediagis/nominatim:4.4 \
+    /bin/bash -c "/app/config.sh && useradd -m nominatim && /app/init.sh && touch ${IMPORT_FINISHED}"
+
+  docker volume rm nominatim-flatnode # flatnodes unneeded after import
+fi
+
+if [[ $IMPORT_TILESERVER -eq 1 ]]; then
+  mkdir -p /data/tiles
+
+  docker run --rm \
+    -e JAVA_TOOL_OPTIONS="-Xmx2g" \
+    -v /data/tiles:/data \
+    -v /data/${PBF_FILENAME}:/data/${PBF_FILENAME} \
+    ghcr.io/onthegomap/planetiler --download \
+    --osm-path=/data/${PBF_FILENAME} \
+    --output=/data/${REGION}.mbtiles
+
+  # set up tileserver config
+  mkdir -p /data/tileserver
+  wget https://github.com/maptiler/tileserver-gl/releases/download/v1.3.0/test_data.zip
+  unzip -o test_data.zip -d /data/tileserver
+  cp static/tileserver_config.json /data/tileserver/config.json
+  sed -i "s/zurich_switzerland/${REGION}/g" /data/tileserver/config.json
+  rm test_data.zip /data/tileserver/zurich_switzerland.mbtiles
+fi
+
+if [[ $IMPORT_OSRM_BACKEND -eq 1 ]]; then
+  mkdir -p /data/osrm
+
+  # us-northeast 12.8GB RAM
+  docker run --rm \
+      -t -v /data/osrm:/data \
+      -v /data/${PBF_FILENAME}:/data/${PBF_FILENAME} \
+      ghcr.io/project-osrm/osrm-backend \
+      osrm-extract -p /opt/car.lua \
+      /data/${PBF_FILENAME} || echo "osrm-extract failed"
+
+  # us-northeast 6.4GB RAM
+  docker run --rm \
+      -t -v /data/osrm:/data \
+      -v /data/${PBF_FILENAME}:/data/${PBF_FILENAME} \
+      ghcr.io/project-osrm/osrm-backend \
+      osrm-partition \
+      /data/${REGION}.osrm || echo "osrm-partition failed"
+
+  # us-northeast 5.2GB RAM
+  docker run --rm \
+      -t -v /data/osrm:/data \
+      -v /data/${PBF_FILENAME}:/data/${PBF_FILENAME} \
+      ghcr.io/project-osrm/osrm-backend \
+      osrm-customize \
+      /data/${REGION}.osrm || echo "osrm-customize failed"
+fi

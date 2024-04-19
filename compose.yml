@@ -12,16 +12,11 @@ services:
   nominatim:
     image: mediagis/nominatim:4.4
     volumes:
-      - /data/${REGION:?}.osm.pbf:/data/${REGION:?}.osm.pbf
       - nominatim-data:/var/lib/postgresql/14/main
-#      - nominatim-flatnode:/nominatim/flatnode
     ports:
       - "8080:8080"
     environment:
       - PBF_PATH=/data/${REGION:?}.osm.pbf
-#      - NOMINATIM_FLATNODE_FILE="/nominatim/flatnode/${REGION:?}.flatnode"
-      - FREEZE=true
-    shm_size: '8gb'
   tileserver:
     image: maptiler/tileserver-gl
     volumes:
@@ -40,4 +35,3 @@ services:
 volumes:
   nominatim-data:
     external: true
-#  nominatim-flatnode:
