@@ -2,10 +2,10 @@
 
 ## Solution
 
-1. Run `./scripts/install_docker.sh` to install docker
+1. Run `./scripts/install_docker.sh` to install docker and docker-volume-snapshot
 2. Run `./scripts/import.sh <region>` to import data
    * Note: osrm requires a lot of memory to create the routing data and will
-   crash if there is not enough memory.
+   crash if there is not enough memory
 3. Run `REGION=<region> docker compose up -d` to run services
 4. Run `./scripts/install_rust.sh` to install rust
 5. Run `cargo run --release` to run server
