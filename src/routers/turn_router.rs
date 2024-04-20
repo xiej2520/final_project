@@ -36,9 +36,10 @@ pub async fn turn_handler(
     match get_tile(&client, tl_lat, tl_lon, br_lat, br_lon).await {
         Ok(bytes) => {
             let mut res = Response::new(Body::from(bytes));
-            res.headers_mut().insert("content-type", "image/png".parse().unwrap());
+            res.headers_mut()
+                .insert("content-type", "image/png".parse().unwrap());
             res
-        },
+        }
         Err(e) => {
             eprintln!("Error: {}", e);
             Json(StatusResponse::new_err(e.to_string())).into_response()

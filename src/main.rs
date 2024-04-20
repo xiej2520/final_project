@@ -15,7 +15,7 @@ use tower_sessions::{cookie::time::Duration, Expiry, MemoryStore, Session, Sessi
 
 use server::routers::*;
 use server::CONFIG;
-use server::{append_headers, controllers::*, init_logging, print_request_response};
+use server::{controllers::*, init_logging, print_request_response};
 use server::{http_client::HttpClient, status_response::StatusResponse};
 
 pub struct ServerState {
@@ -62,11 +62,6 @@ async fn main() {
     } = ServerState::new().await.expect("Something went wrong");
 
     let mut restricted_app = Router::new()
-        .nest("/", convert_router::new_router())
-        .nest(
-            "/api",
-            search_router::new_router().with_state(search_client.clone()),
-        )
         .nest(
             "/api",
             address_router::new_router().with_state(search_client.clone()),
@@ -74,14 +69,6 @@ async fn main() {
         .nest(
             "/api",
             route_router::new_router().with_state(routing_client.clone()),
-        )
-        .nest(
-            "/",
-            tile_router::new_router().with_state(tile_client.clone()),
-        )
-        .nest(
-            "/",
-            turn_router::new_router().with_state(turn_client.clone()),
         );
     if !cfg!(feature = "disable_auth") {
         restricted_app = restricted_app.layer(axum::middleware::from_fn(login_gateway));
@@ -90,13 +77,26 @@ async fn main() {
     let mut gateway = Router::new()
         .nest_service("/", ServeDir::new("static"))
         .nest("/auth", auth_router::new_router())
+        .nest("/", convert_router::new_router())
         .nest("/", restricted_app)
         .nest(
             "/api",
             user_router::new_router().with_state(user_store.clone()),
         )
-        .layer(session_layer)
-        .layer(axum::middleware::from_fn(append_headers));
+        .nest(
+            "/api",
+            search_router::new_router().with_state(search_client.clone()),
+        )
+        .nest(
+            "/",
+            tile_router::new_router().with_state(tile_client.clone()),
+        )
+        .nest(
+            "/",
+            turn_router::new_router().with_state(turn_client.clone()),
+        )
+        .layer(session_layer);
+    //.layer(axum::middleware::from_fn(append_headers));
     if !cfg!(feature = "disable_logs") {
         gateway = gateway.layer(
             ServiceBuilder::new()

@@ -5,10 +5,10 @@ use axum::Router;
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 
-use server::{append_headers, init_logging, print_request_response};
-use server::CONFIG;
 use server::http_client::HttpClient;
 use server::routers::*;
+use server::CONFIG;
+use server::{append_headers, init_logging, print_request_response};
 
 /// Runs a routing service
 /// Reverse proxy traffic here *after* verifyinng authentication, this doesn't

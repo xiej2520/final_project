@@ -8,12 +8,12 @@ use tower::ServiceBuilder;
 
 use tower_http::trace::TraceLayer;
 
-use server::{append_headers, init_logging, print_request_response};
 use server::controllers::user_controller;
-use server::CONFIG;
 use server::routers::*;
+use server::CONFIG;
+use server::{append_headers, init_logging, print_request_response};
 
-/// Runs an user creation, login, and authentication service 
+/// Runs an user creation, login, and authentication service
 #[tokio::main]
 async fn main() {
     init_logging();
