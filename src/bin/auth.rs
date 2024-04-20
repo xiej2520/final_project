@@ -11,28 +11,22 @@ use server::CONFIG;
 use server::http_client::HttpClient;
 use server::routers::*;
 
-/// Runs a search and reverse geoencoding (address) service
-/// Reverse proxy traffic here *after* verifyinng authentication, this doesn't
-/// do any authentication.
+/// Runs an user creation, login, and authentication service 
 #[tokio::main]
 async fn main() {
     init_logging();
+    let user_store = user_controller::UserStore::default();
 
-    let search_client = HttpClient::new(&CONFIG.search_url).unwrap();
-
-    let mut search_revgeo_app = Router::new()
+    let mut auth_app = Router::new()
+        .nest("/auth", auth_router::new_router())
         .nest(
             "/api",
-            search_router::new_router().with_state(search_client.clone()),
-        )
-        .nest(
-            "/api",
-            address_router::new_router().with_state(search_client.clone()),
+            user_router::new_router().with_state(user_store.clone()),
         )
         .layer(axum::middleware::from_fn(append_headers));
 
     if !cfg!(feature = "disable_logs") {
-        search_revgeo_app = search_revgeo_app.layer(
+        auth_app = auth_app.layer(
             ServiceBuilder::new()
                 .layer(TraceLayer::new_for_http())
                 .layer(axum::middleware::from_fn(print_request_response)),
@@ -43,5 +37,5 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
 
     tracing::debug!("Server listening on {}", addr);
-    axum::serve(listener, search_revgeo_app).await.unwrap();
+    axum::serve(listener, auth_app).await.unwrap();
 }

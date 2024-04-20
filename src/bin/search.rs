@@ -3,6 +3,7 @@ use std::net::SocketAddr;
 use axum::Router;
 
 use tower::ServiceBuilder;
+
 use tower_http::trace::TraceLayer;
 
 use server::{append_headers, init_logging, print_request_response};
@@ -10,23 +11,27 @@ use server::CONFIG;
 use server::http_client::HttpClient;
 use server::routers::*;
 
-/// Runs a routing service
+/// Runs a search and reverse geoencoding (address) service
 /// Reverse proxy traffic here *after* verifyinng authentication, this doesn't
 /// do any authentication.
 #[tokio::main]
 async fn main() {
     init_logging();
-    let routing_client = HttpClient::new(&CONFIG.routing_url).unwrap();
+    let search_client = HttpClient::new(&CONFIG.search_url).unwrap();
 
-    let mut routing_app = Router::new()
+    let mut search_app = Router::new()
         .nest(
             "/api",
-            route_router::new_router().with_state(routing_client.clone()),
+            search_router::new_router().with_state(search_client.clone()),
+        )
+        .nest(
+            "/api",
+            address_router::new_router().with_state(search_client.clone()),
         )
         .layer(axum::middleware::from_fn(append_headers));
 
     if !cfg!(feature = "disable_logs") {
-        routing_app = routing_app.layer(
+        search_app = search_app.layer(
             ServiceBuilder::new()
                 .layer(TraceLayer::new_for_http())
                 .layer(axum::middleware::from_fn(print_request_response)),
@@ -37,5 +42,5 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
 
     tracing::debug!("Server listening on {}", addr);
-    axum::serve(listener, routing_app).await.unwrap();
+    axum::serve(listener, search_app).await.unwrap();
 }
