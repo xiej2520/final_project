@@ -54,6 +54,14 @@ Once that is done, we can run our script the same way we usually do, for instanc
 k6 run dist/get-200-status-test.js
 ```
 
+To run with xk6 dashboard:
+
+```bash
+docker run --rm -it --net=host \
+-v $(pwd)/dist:/src ghcr.io/grafana/xk6-dashboard:0.6.1 \
+run --out 'dashboard=period=2s' /src/get-200-status-test.js
+```
+
 **See also**
 
 - [Using k6 / Modules](https://grafana.com/docs/k6/latest/using-k6/modules/)

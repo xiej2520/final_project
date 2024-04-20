@@ -3,21 +3,26 @@ import { Options } from 'k6/options';
 import http from 'k6/http';
 
 export let options: Options = {
-  vus: 1000,
-  duration: '10s',
+  vus: 500,
+  duration: '100s',
 };
 
 const rand = (l: number, h: number) => (Math.random() * (h - l) + l);
+/// full us-northeast
 //const minlat = 39;
 //const maxlat = 47;
 //const minlon = -80;
 //const maxlon = -64;
-//const minzoom = 7;
-//const maxzoom = 22;
-const minlat = 43;
-const maxlat = 44;
-const minlon = 7;
-const maxlon = 8;
+/// new england
+const minlat = 41.310824;
+const maxlat = 44.980342;
+const minlon = -74.742916;
+const maxlon = -70.676541;
+/// monaco
+//const minlat = 43;
+//const maxlat = 44;
+//const minlon = 7;
+//const maxlon = 8;
 const minzoom = 7;
 const maxzoom = 22;
 
@@ -54,6 +59,8 @@ export default () => {
   check(tile_res, {
     'tile status is 200': r => r.status === 200,
     'Content-Type is png': r => r.headers['Content-Type'] === "image/png",
+    'Got an interesting image': r => parseInt(r.headers['Content-Length']) >= 2000,
+    'Got a very interesting image': r => parseInt(r.headers['Content-Length']) >= 10000,
   });
   //sleep(1);
 };
