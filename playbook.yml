@@ -1,0 +1,86 @@
+---
+- name: Install aptitude
+  hosts: all
+  tasks:
+    - name: Update apt and install aptitude
+      ansible.builtin.apt:
+        name: aptitude
+        state: present
+        update_cache: true
+
+- name: Install pip3
+  hosts: all
+  tasks:
+    - name: Update apt and install python3-pip
+      ansible.builtin.apt:
+        name: python3-pip
+        state: present
+        update_cache: true
+
+- name: Install and configure docker
+  hosts: all
+  tasks:
+    - name: Add Docker GPG apt Key
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker Repository
+      ansible.builtin.apt_repository:
+        repo: deb https://download.docker.com/linux/ubuntu focal stable
+        state: present
+
+    - name: Update apt and install docker-ce
+      ansible.builtin.apt:
+        name: docker-ce
+        state: present
+        update_cache: true
+
+    - name: Install Docker Module for Python
+      ansible.builtin.pip:
+        name: docker
+        state: present
+
+    - name: Test hello world docker container
+      community.docker.docker_container:
+        name: hello-world
+        image: hello-world
+        state: started
+        auto_remove: true
+
+- name: Build and save Docker image
+  hosts: localhost
+  tasks:
+    - name: Build Docker image
+      community.docker.docker_image:
+        state: present
+        source: build
+        build:
+          path: .
+        name: server
+        tag: latest
+
+    - name: Save Docker image to tar file
+      ansible.builtin.command:
+        cmd: docker save server:latest -o /tmp/server.tar
+        creates: /tmp/server.tar
+
+- name: Copy and load Docker image
+  hosts: all
+  tasks:
+    - name: Copy Docker image
+      ansible.builtin.copy:
+        src: /tmp/server.tar
+        dest: /tmp/server.tar
+        owner: root
+        group: root
+        mode: '0644'
+    - name: Load Docker image
+      community.docker.docker_image:
+        name: server
+        source: load
+        load_path: /tmp/server.tar
+
+# - name: Setup routing microservice
+#   hosts: routing
+#   tasks:

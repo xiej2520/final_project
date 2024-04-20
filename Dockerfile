@@ -5,4 +5,5 @@ COPY . .
 
 RUN cargo install --path .
 
-CMD []
+EXPOSE 8000
+CMD ["server"]
