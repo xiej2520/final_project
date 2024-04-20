@@ -14,8 +14,8 @@ use chrono::Local;
 use config::Config;
 use http_body_util::BodyExt;
 use once_cell::sync::Lazy;
-use tracing_subscriber::fmt;
-use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::{filter::LevelFilter, layer::SubscriberExt};
+use tracing_subscriber::{fmt, Layer};
 
 #[derive(Debug)]
 pub struct ServerConfig {
@@ -105,15 +105,20 @@ pub fn init_logging() {
     if cfg!(feature = "disable_logs") {
         return;
     }
-    let file_appender = tracing_appender::rolling::never("./logs", Local::now().to_rfc3339());
-    let (file_writer, _guard) = tracing_appender::non_blocking(file_appender);
-    tracing::subscriber::set_global_default(
-        fmt::Subscriber::builder()
-            .with_max_level(tracing::Level::DEBUG)
-            //.with_max_level(tracing::Level::ERROR)
-            .finish()
-            .with(fmt::Layer::default().with_writer(file_writer)),
-        // .with(fmt::Layer::default().with_writer(std::io::stderr))
-    )
-    .expect("Unable to set global tracing subscriber");
+    let log_appender = tracing_appender::rolling::never("./logs", Local::now().to_rfc3339());
+    let log_format = tracing_subscriber::fmt::format::Format::default()
+        //.with_target(true)
+        //.with_level(true)
+        //.with_thread_ids(true)
+        //.with_thread_names(true)
+        //.pretty()
+        ;
+    let local_log = tracing_subscriber::fmt::layer()
+        .with_writer(log_appender)
+        .with_writer(std::io::stderr)
+        .event_format(log_format)
+        .with_filter(LevelFilter::DEBUG);
+    //.with_filter(tracing_subscriber::filter::LevelFilter::ERROR);
+    let registry = tracing_subscriber::registry().with(local_log);
+    tracing::subscriber::set_global_default(registry).expect("Failed to enable logs");
 }
