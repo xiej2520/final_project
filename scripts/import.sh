@@ -80,6 +80,10 @@ if [[ $IMPORT_NOMINATIM -eq 1 ]]; then
     /bin/bash -c "/app/config.sh && useradd -m nominatim && /app/init.sh && touch ${IMPORT_FINISHED}"
 
   docker volume rm nominatim-flatnode # flatnodes unneeded after import
+
+  # import planet_osm_line, planet_osm_roads, planet_osm_polygon, planet_osm_point
+  # for custom search
+  docker run -i -t --rm openfirmware/osm2pgsql -c ' osm2pgsql -c -d postgres://nominatim:qaIACxO6wMR3@localhost:5432/nominatim /data/${PBF_FILENAME}'
 fi
 
 if [[ $IMPORT_TILESERVER -eq 1 ]]; then

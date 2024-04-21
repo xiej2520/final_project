@@ -10,7 +10,7 @@ docker-volume-snapshot create nominatim-data nominatim-data-us-northeast.tar
 sudo tar -I"zstd -T0" -cvpf nominatim-data-us-northeast.tar.zst nominatim-data-us-northeast.tar
 # extract volume
 tar --zstd -xvf nominatim-data-us-northeast.tar.zst
-#import volume
+# import volume
 docker-volume-snapshot restore nominatim-data-us-northeast.tar nominatim-data
 
 
