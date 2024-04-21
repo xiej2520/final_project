@@ -1,4 +1,5 @@
 pub mod controllers;
+pub mod db_queries;
 pub mod http_client;
 pub mod parse_form;
 pub mod routers;
@@ -14,7 +15,7 @@ use chrono::Local;
 use config::Config;
 use http_body_util::BodyExt;
 use once_cell::sync::Lazy;
-use tracing_subscriber::{filter::LevelFilter, Layer, layer::SubscriberExt};
+use tracing_subscriber::{filter::LevelFilter, layer::SubscriberExt, Layer};
 
 #[derive(Debug)]
 pub struct ServerConfig {
@@ -23,6 +24,7 @@ pub struct ServerConfig {
     pub domain: &'static str,
     pub relay_ip: [u8; 4],
     pub relay_port: u16,
+    pub db_url: &'static str,
     pub search_url: &'static str,
     pub tile_url: &'static str,
     pub turn_url: &'static str,
@@ -42,7 +44,7 @@ pub static CONFIG: Lazy<ServerConfig> = Lazy::new(|| {
         domain: config.get_string("domain").unwrap().leak(),
         relay_ip: config.get("relay_ip").unwrap(),
         relay_port: config.get("relay_port").unwrap(),
-        // db_url: config.get_string("db_url").unwrap().leak(),
+        db_url: config.get_string("db_url").unwrap().leak(),
         search_url: config.get_string("search_url").unwrap().leak(),
         tile_url: config.get_string("tile_url").unwrap().leak(),
         turn_url: config.get_string("turn_url").unwrap().leak(),

@@ -20,6 +20,7 @@ services:
       - nominatim-data:/var/lib/postgresql/14/main
     ports:
       - "8080:8080"
+      - "5432:5432"
     environment:
       - PBF_PATH=/data/${REGION:?}.osm.pbf
   osrm-backend:
