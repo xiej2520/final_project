@@ -52,11 +52,35 @@
 - name: Copy config files
   hosts: all
   tasks:
-    - name: Copy config files
-      ansible.builtin.copy:
-        src: ./config.toml
-        dest: .
+    - name: Copy config files using jinja
+      ansible.builtin.template:
+        src: ./templates/config.toml.j2
+        dest: ./config.toml
         mode: '0644'
+
+- name: Setup nginx
+  hosts: nginx
+  tasks:
+    - name: Ensure nginx config directory exists
+      ansible.builtin.file:
+        path: /etc/nginx
+        state: directory
+        mode: '0755'
+
+    - name: Copy nginx config using jinja
+      ansible.builtin.template:
+        src: ./templates/nginx.conf.j2
+        dest: /etc/nginx/nginx.conf
+        mode: '0644'
+
+    - name: Start nginx service
+      community.docker.docker_container:
+        name: nginx
+        image: nginx:latest
+        ports:
+          - "80:80"
+        volumes:
+          - /etc/nginx/nginx.conf:/etc/nginx/nginx.conf
 
 - name: Setup routing microservice
   hosts: routing
