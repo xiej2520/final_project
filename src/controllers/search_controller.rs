@@ -1,5 +1,6 @@
-use crate::http_client::HttpClient;
 use serde::{Deserialize, Serialize};
+
+use crate::db_queries::DbClient;
 
 #[derive(Debug, Deserialize)]
 #[allow(non_snake_case)]
@@ -42,6 +43,17 @@ impl From<SearchQuery> for InBBoxObject {
         }
     }
 }
+impl From<tokio_postgres::Row> for InBBoxObject {
+    fn from(row: tokio_postgres::Row) -> Self {
+        Self {
+            name: row.get("name"),
+            coordinates: Coordinates {
+                lat: row.get("lat"),
+                lon: row.get("lon"),
+            },
+        }
+    }
+}
 
 #[derive(Debug, Serialize)]
 pub struct AnywhereObject {
@@ -68,8 +80,26 @@ impl From<SearchQuery> for AnywhereObject {
     }
 }
 
+impl From<tokio_postgres::Row> for AnywhereObject {
+    fn from(row: tokio_postgres::Row) -> Self {
+        Self {
+            name: row.get("name"),
+            coordinates: Coordinates {
+                lat: row.get("centroidLat"),
+                lon: row.get("centroidLon"),
+            },
+            bbox: BoundingBox {
+                minLat: row.get("minLat"),
+                minLon: row.get("minLon"),
+                maxLat: row.get("maxLat"),
+                maxLon: row.get("maxLon"),
+            },
+        }
+    }
+}
+
 pub async fn search_in_bbox(
-    client: &HttpClient,
+    client: &DbClient,
     BoundingBox {
         minLat: min_lat,
         minLon: min_lon,
@@ -77,51 +107,25 @@ pub async fn search_in_bbox(
         maxLon: max_lon,
     }: BoundingBox,
     search_term: &str,
-) -> Result<Vec<InBBoxObject>, String> {
-    let url = format!(
-        "search?q={search_term}&viewbox={min_lon},{min_lat},{max_lon},{max_lat}&bounded=1&format=jsonv2"
-    );
+) -> Result<Vec<InBBoxObject>, tokio_postgres::Error> {
+    // match any containing, build an index
+    let search_term = format!("%{search_term}%");
+    tracing::info!("Searching for {search_term}");
+    let rows = client
+        .bbox_query(&search_term, min_lon, min_lat, max_lon, max_lat)
+        .await?;
 
-    let builder = match client.get(&url).await {
-        Ok(builder) => builder,
-        Err(e) => return Err(e.to_string()),
-    };
-    let response = match builder.send().await {
-        Ok(response) => response,
-        Err(e) => return Err(e.to_string()),
-    };
-    let json: serde_json::Value = match response.json().await {
-        Ok(json) => json,
-        Err(e) => return Err(e.to_string()),
-    };
-
-    match serde_json::from_value::<Vec<SearchQuery>>(json) {
-        Ok(queries) => Ok(queries.into_iter().map(InBBoxObject::from).collect()),
-        Err(e) => Err(e.to_string()),
-    }
+    Ok(rows.into_iter().map(InBBoxObject::from).collect())
 }
 
 pub async fn search_anywhere(
-    client: &HttpClient,
+    client: &DbClient,
     search_term: &str,
-) -> Result<Vec<AnywhereObject>, String> {
-    let url = format!("search?q={search_term}&format=jsonv2");
+) -> Result<Vec<AnywhereObject>, tokio_postgres::Error> {
+    let search_term = format!("%{search_term}%");
+    tracing::info!("Searching for {search_term}");
 
-    let builder = match client.get(&url).await {
-        Ok(builder) => builder,
-        Err(e) => return Err(e.to_string()),
-    };
-    let response = match builder.send().await {
-        Ok(response) => response,
-        Err(e) => return Err(e.to_string()),
-    };
-    let json: serde_json::Value = match response.json().await {
-        Ok(json) => json,
-        Err(e) => return Err(e.to_string()),
-    };
+    let rows = client.anywhere_query(&search_term).await?;
 
-    match serde_json::from_value::<Vec<SearchQuery>>(json) {
-        Ok(queries) => Ok(queries.into_iter().map(AnywhereObject::from).collect()),
-        Err(e) => Err(e.to_string()),
-    }
+    Ok(rows.into_iter().map(AnywhereObject::from).collect())
 }

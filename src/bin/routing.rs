@@ -16,7 +16,7 @@ use server::{append_headers, init_logging, print_request_response};
 #[tokio::main]
 async fn main() {
     init_logging();
-    let routing_client = HttpClient::new(&CONFIG.routing_url).unwrap();
+    let routing_client = HttpClient::new(CONFIG.routing_url).unwrap();
 
     let mut routing_app = Router::new()
         .nest(
