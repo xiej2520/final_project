@@ -1,5 +1,4 @@
 use std::net::SocketAddr;
-use std::sync::Arc;
 
 use axum::Router;
 
@@ -17,14 +16,11 @@ use server::{append_headers, init_logging, print_request_response};
 #[tokio::main]
 async fn main() {
     init_logging();
-    let user_store = Arc::new(RwLock::new(user_controller::UserStore::default()));
+    let user_store = Box::leak(Box::new(RwLock::new(user_controller::UserStore::default())));
 
     let mut auth_app = Router::new()
         .nest("/auth", auth_router::new_router())
-        .nest(
-            "/api",
-            user_router::new_router().with_state(user_store.clone()),
-        )
+        .nest("/api", user_router::new_router().with_state(user_store))
         .layer(axum::middleware::from_fn(append_headers));
 
     if !cfg!(feature = "disable_logs") {

@@ -1,4 +1,4 @@
-use std::{net::SocketAddr, sync::Arc};
+use std::net::SocketAddr;
 
 use axum::{extract::Request, middleware::Next};
 use axum::{
@@ -19,7 +19,7 @@ use server::{controllers::*, init_logging, print_request_response};
 use server::{http_client::HttpClient, status_response::StatusResponse};
 
 pub struct ServerState {
-    user_store: Arc<RwLock<user_controller::UserStore>>,
+    user_store: &'static RwLock<user_controller::UserStore>,
     // no need for Arc as reqwest::Client already implements it
     search_client: HttpClient,
     tile_client: HttpClient,
@@ -35,7 +35,7 @@ impl ServerState {
         let turn_client = HttpClient::new(&CONFIG.turn_url)?;
         let routing_client = HttpClient::new(&CONFIG.routing_url)?;
         Ok(Self {
-            user_store: Arc::new(RwLock::new(user_store)),
+            user_store: Box::leak(Box::new(RwLock::new(user_store))),
             search_client,
             tile_client,
             turn_client,
@@ -79,10 +79,7 @@ async fn main() {
         .nest("/auth", auth_router::new_router())
         .nest("/", convert_router::new_router())
         .nest("/", restricted_app)
-        .nest(
-            "/api",
-            user_router::new_router().with_state(user_store.clone()),
-        )
+        .nest("/api", user_router::new_router().with_state(user_store))
         .nest(
             "/api",
             search_router::new_router().with_state(search_client.clone()),

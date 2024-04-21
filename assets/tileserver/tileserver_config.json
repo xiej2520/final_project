@@ -1,0 +1,39 @@
+{
+  "options": {
+    "paths": {
+      "fonts": "fonts",
+      "styles": "styles"
+    },
+    "minRendererPoolSizes": [16, 0, 0],
+    "maxRendererPoolSizes": [16, 0, 0],
+    "formatQuality": 0
+  },
+  "styles": {
+    "osm-bright": {
+      "style": "osm-bright/style.json"
+    },
+    "klokantech-basic": {
+      "style": "klokantech-basic/style.json"
+    },
+    "positron-gl": {
+      "style": "positron-gl-style.json"
+    },
+    "dark-matter-gl": {
+      "style": "dark-matter-gl-style.json"
+    },
+    "maptiler-3d-gl": {
+      "style": "maptiler-3d-gl-style.json"
+    },
+    "maptiler-toner-gl": {
+      "style": "maptiler-toner-gl-style.json"
+    },
+    "osm-liberty": {
+      "style": "osm-liberty-style.json"
+    }
+  },
+  "data": {
+    "openmaptiles": {
+      "mbtiles": "tiles/zurich_switzerland.mbtiles"
+    }
+  }
+}

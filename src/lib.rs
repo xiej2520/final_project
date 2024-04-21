@@ -14,7 +14,7 @@ use chrono::Local;
 use config::Config;
 use http_body_util::BodyExt;
 use once_cell::sync::Lazy;
-use tracing_subscriber::{filter::LevelFilter, Layer, layer::SubscriberExt};
+use tracing_subscriber::{filter::LevelFilter, layer::SubscriberExt, Layer};
 
 #[derive(Debug)]
 pub struct ServerConfig {

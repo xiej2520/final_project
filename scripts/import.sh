@@ -80,6 +80,34 @@ if [[ $IMPORT_NOMINATIM -eq 1 ]]; then
     /bin/bash -c "/app/config.sh && useradd -m nominatim && /app/init.sh && touch ${IMPORT_FINISHED}"
 
   docker volume rm nominatim-flatnode # flatnodes unneeded after import
+
+  ##### DO NOT DELETE
+  ## import planet_osm_line, planet_osm_roads, planet_osm_polygon, planet_osm_point
+  ## for custom search
+  ##docker run -i -t --rm openfirmware/osm2pgsql -c ' osm2pgsql -c -d postgres://nominatim:qaIACxO6wMR3@localhost:5432/nominatim /data/${PBF_FILENAME}'
+
+  # import photon
+  docker run --rm -d \
+    --name nominatim_db \
+    -v /data:/data \
+    -v nominatim-data:/var/lib/postgresql/14/main \
+    -p 5432:5432 \
+    -e PBF_PATH="/data/${PBF_FILENAME}" \
+    mediagis/nominatim:4.4 
+  
+  wget -P /data https://github.com/komoot/photon/releases/download/0.5.0/photon-0.5.0.jar
+
+  docker run --net=host \
+    -v /data:/data \
+    -v nominatim-data:/photon \
+    amazoncorretto:22.0.1-alpine3.19 \
+    java -jar /data/photon-0.5.0.jar \
+    -nominatim-import \
+    -host localhost -port 5432 \
+    -database nominatim -password qaIACxO6wMR3 \
+    -data-dir /photon
+
+  docker stop nominatim_db
 fi
 
 if [[ $IMPORT_TILESERVER -eq 1 ]]; then

@@ -4,9 +4,9 @@ use axum::body::Bytes;
 
 use crate::http_client::HttpClient;
 
-// rad -> (lat, lon)
+// box IN RADIANS -> (lat, lon)
 // https://stackoverflow.com/questions/6671183/calculate-the-center-point-of-multiple-latitude-longitude-coordinate-pairs
-fn center(tl_lat: f64, tl_lon: f64, br_lat: f64, br_lon: f64) -> (f64, f64) {
+pub fn center(tl_lat: f64, tl_lon: f64, br_lat: f64, br_lon: f64) -> (f64, f64) {
     let (mut x, mut y, mut z) = (0.0, 0.0, 0.0);
 
     x += tl_lat.cos() * tl_lon.cos();

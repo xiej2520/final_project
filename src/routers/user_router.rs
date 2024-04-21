@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use axum::{
     extract::{Query, State},
     routing::{get, post},
@@ -38,7 +36,7 @@ struct UserResponse {
     username: Option<String>,
 }
 
-pub fn new_router() -> Router<Arc<RwLock<UserStore>>> {
+pub fn new_router() -> Router<&'static RwLock<UserStore>> {
     Router::new()
         .route("/adduser", post(add_user_handler))
         .route("/verify", get(verify_user_handler))
@@ -49,7 +47,7 @@ pub fn new_router() -> Router<Arc<RwLock<UserStore>>> {
 
 #[debug_handler]
 async fn add_user_handler(
-    State(store): State<Arc<RwLock<UserStore>>>,
+    State(store): State<&'static RwLock<UserStore>>,
     Json(AddUserBody {
         username,
         password,
@@ -86,7 +84,7 @@ async fn add_user_handler(
 
 #[debug_handler]
 async fn verify_user_handler(
-    State(store): State<Arc<RwLock<UserStore>>>,
+    State(store): State<&'static RwLock<UserStore>>,
     Query(VerifyParams { email, key }): Query<VerifyParams>,
 ) -> Json<StatusResponse> {
     let Some(email) = email else {
@@ -107,7 +105,7 @@ async fn verify_user_handler(
 
 #[debug_handler]
 async fn login_user_handler(
-    State(store): State<Arc<RwLock<UserStore>>>,
+    State(store): State<&'static RwLock<UserStore>>,
     session: Session,
     Json(LoginBody { username, password }): Json<LoginBody>,
 ) -> Json<StatusResponse> {
