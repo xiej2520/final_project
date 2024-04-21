@@ -3,14 +3,13 @@
 ## Solution
 
 1. Run `./scripts/install_docker.sh` to install docker and docker-volume-snapshot
-2. Run `./scripts/import.sh <region>` to import data
+2. Run `./scripts/import.sh --all --region <region>` to import data
    * Note: osrm requires a lot of memory to create the routing data and will
    crash if there is not enough memory
-3. Run `REGION=<region> docker compose up -d` to run services
-4. Run `./scripts/install_rust.sh` to install rust
-5. Run `cargo run --release` to run server
+3. Run `./scripts/install_rust.sh` to install rust
+4. Run `ansible-playbook -i inventory.ini -e "REGION=<region>" playbook.yml` to deploy using ansible
 
-Make sure you have a `config.toml` in the root directory.
+Make sure you have a `config.toml` and an `inventory.ini` or `inventory.yml` in the root director.
 
 ### To copy to remote machine
 
@@ -50,6 +49,19 @@ endpoints.
 
 ```Shell
 cargo +nightly run -F disable_email -F disable_auth
+```
+
+## Inventory
+
+```ini
+[auth]
+auth01 ansible_host=root@0.0.0.0
+
+[routing]
+routing01 ansible_host=root@0.0.0.0
+
+[search]
+search01 search_host=root@0.0.0.0
 ```
 
 ## Notes

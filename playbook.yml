@@ -38,70 +38,30 @@
 
     - name: Install Docker SDK for Python
       ansible.builtin.pip:
-        name:
-          - docker
-          - docker-compose
+        name: docker
         state: present
 
-- name: Check Docker image exists
+- name: Build binaries
   hosts: localhost
   tasks:
-    - name: Check Docker image exists
-      ansible.builtin.stat:
-        path: ./server.tar.gz
-      register: result
-
-- name: Build and save Docker image
-  hosts: localhost
-  tasks:
-    - name: Build Docker image
-      community.docker.docker_image:
-        state: present
-        source: build
-        build:
-          path: .
-        name: server
-        tag: latest
-      when: not result.stat.exists
-
-    - name: Save Docker image
+    - name: Build binaries
       ansible.builtin.command:
-        cmd: docker save server:latest -o ./server.tar
-        creates: ./server.tar
-      when: not result.stat.exists
-
-    - name: Compress Docker image
-      community.general.archive:
-        path: ./server.tar
-        dest: ./server.tar.gz
-        format: gz
-        mode: '0644'
-        remove: true
-      when: not result.stat.exists
-
-- name: Copy and load Docker image
-  hosts: all
-  tasks:
-    - name: Copy and unarchive Docker image
-      ansible.builtin.unarchive:
-        copy: true
-        src: ./server.tar.gz
-        dest: /tmp
-        mode: '0644'
-
-    - name: Load Docker image
-      community.docker.docker_image:
-        name: server
-        source: load
-        load_path: /tmp/server.tar
+        cmd: cargo build --release
+        creates: ./target/release
 
 - name: Setup routing microservice
   hosts: routing
   tasks:
-    - name: Copy docker-compose file
+    - name: Copy routing binary
       ansible.builtin.copy:
-        src: ./services/routing/
-        dest: /opt/routing/
+        src: ./target/release/routing
+        dest: /bin
+        mode: '0755'
+
+    - name: Copy config file
+      ansible.builtin.copy:
+        src: ./config.toml
+        dest: .
         mode: '0644'
 
     - name: Copy OSRM data
@@ -110,7 +70,21 @@
         dest: /data/osrm/
         mode: '0644'
 
-    - name: Start routing microservice
-      community.docker.docker_compose_v2:
-        project_name: routing
-        project_src: /opt/routing
+    - name: Start OSRM service
+      community.docker.docker_container:
+        name: osrm
+        image: ghcr.io/project-osrm/osrm-backend
+        command: osrm-routed --algorithm mld /data/{{ REGION }}.osrm
+        volumes:
+          - /data/osrm:/data
+        network_mode: host
+
+    - name: Start routing service
+      community.docker.docker_container:
+        name: routing
+        image: ubuntu:jammy
+        command: routing
+        volumes:
+          - /bin:/bin
+          - ./config.toml:/config.toml
+        network_mode: host

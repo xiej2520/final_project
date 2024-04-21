@@ -1,9 +1,4 @@
 services:
-  app:
-    image: .
-    ports:
-      - "8000:8000"
-    command: ${SERVICE:-server}
   nginx:
     image: nginx:latest
     ports:
