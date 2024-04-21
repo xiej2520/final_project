@@ -97,7 +97,8 @@ if [[ $IMPORT_TILESERVER -eq 1 ]]; then
   mkdir -p /data/tileserver
   wget https://github.com/maptiler/tileserver-gl/releases/download/v1.3.0/test_data.zip
   unzip -o test_data.zip -d /data/tileserver
-  cp static/tileserver_config.json /data/tileserver/config.json
+  cp assets/tileserver/tileserver_config.json /data/tileserver/config.json
+  cp assets/tileserver/styles/* /data/tileserver/styles/
   sed -i "s/zurich_switzerland/${REGION}/g" /data/tileserver/config.json
   rm test_data.zip /data/tileserver/zurich_switzerland.mbtiles
 fi

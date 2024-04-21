@@ -62,3 +62,7 @@ cargo +nightly run -F disable_email -F disable_auth
 * transform lat/lon bbox to srid 3857 bbox,
 * find polygons intersecting the bbox
 * get name, centroid of intersection, transform Y and X back to lat and lon
+
+* The tileserver-gl style.json changes:
+  * `sources.openmaptiles.url` changed to `mbtiles://{openmaptiles}`
+  * `glyphs` changed to `{fontstack}/{range}.pbf`

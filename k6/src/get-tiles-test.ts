@@ -4,7 +4,7 @@ import http from 'k6/http';
 
 export let options: Options = {
   vus: 500,
-  duration: '100s',
+  duration: '30s',
 };
 
 const rand = (l: number, h: number) => (Math.random() * (h - l) + l);
