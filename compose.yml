@@ -16,7 +16,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - PBF_URL=https://download.geofabrik.de/europe/monaco-latest.osm.pbf # dummy url
+      - PBF_PATH=/data/${REGION:?}.osm.pbf # dummy path
   osrm-backend:
     image: ghcr.io/project-osrm/osrm-backend
     command: osrm-routed --algorithm mld /data/${REGION:?}.osrm
