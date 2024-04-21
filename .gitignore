@@ -49,4 +49,12 @@ config.toml
 # log files
 logs/*
 
-static/new-york.osm.pbf
+# Compressed files
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.rar
+*.7z
+*.bz2
+*.gz

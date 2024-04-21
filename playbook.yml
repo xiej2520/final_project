@@ -36,17 +36,20 @@
         state: present
         update_cache: true
 
-    - name: Install Docker Module for Python
+    - name: Install Docker SDK for Python
       ansible.builtin.pip:
-        name: docker
+        name:
+          - docker
+          - docker-compose
         state: present
 
-    - name: Test hello world docker container
-      community.docker.docker_container:
-        name: hello-world
-        image: hello-world
-        state: started
-        auto_remove: true
+- name: Check Docker image exists
+  hosts: localhost
+  tasks:
+    - name: Check Docker image exists
+      ansible.builtin.stat:
+        path: ./server.tar.gz
+      register: result
 
 - name: Build and save Docker image
   hosts: localhost
@@ -59,28 +62,55 @@
           path: .
         name: server
         tag: latest
+      when: not result.stat.exists
 
-    - name: Save Docker image to tar file
+    - name: Save Docker image
       ansible.builtin.command:
-        cmd: docker save server:latest -o /tmp/server.tar
-        creates: /tmp/server.tar
+        cmd: docker save server:latest -o ./server.tar
+        creates: ./server.tar
+      when: not result.stat.exists
+
+    - name: Compress Docker image
+      community.general.archive:
+        path: ./server.tar
+        dest: ./server.tar.gz
+        format: gz
+        mode: '0644'
+        remove: true
+      when: not result.stat.exists
 
 - name: Copy and load Docker image
   hosts: all
   tasks:
-    - name: Copy Docker image
-      ansible.builtin.copy:
-        src: /tmp/server.tar
-        dest: /tmp/server.tar
-        owner: root
-        group: root
+    - name: Copy and unarchive Docker image
+      ansible.builtin.unarchive:
+        copy: true
+        src: ./server.tar.gz
+        dest: /tmp
         mode: '0644'
+
     - name: Load Docker image
       community.docker.docker_image:
         name: server
         source: load
         load_path: /tmp/server.tar
 
-# - name: Setup routing microservice
-#   hosts: routing
-#   tasks:
+- name: Setup routing microservice
+  hosts: routing
+  tasks:
+    - name: Copy docker-compose file
+      ansible.builtin.copy:
+        src: ./services/routing/
+        dest: /opt/routing/
+        mode: '0644'
+
+    - name: Copy OSRM data
+      ansible.builtin.copy:
+        src: /data/osrm/
+        dest: /data/osrm/
+        mode: '0644'
+
+    - name: Start routing microservice
+      community.docker.docker_compose_v2:
+        project_name: routing
+        project_src: /opt/routing
