@@ -55,6 +55,7 @@ async fn add_user_handler(
     }): Json<AddUserBody>,
 ) -> Json<StatusResponse> {
     let user = User::new(&username, &password, &email);
+    // check before we try sending an email
     {
         let store = store.read().await;
         if store.get_user(&username).is_some() {

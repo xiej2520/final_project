@@ -17,7 +17,8 @@ use server::{append_headers, init_logging, print_request_response};
 #[tokio::main]
 async fn main() {
     init_logging();
-    let search_client = HttpClient::new(&CONFIG.search_url).unwrap();
+    let search_client = HttpClient::new(CONFIG.search_url).unwrap();
+    let address_client = HttpClient::new(CONFIG.search_url).unwrap();
 
     let mut search_app = Router::new()
         .nest(
@@ -26,7 +27,7 @@ async fn main() {
         )
         .nest(
             "/api",
-            address_router::new_router().with_state(search_client.clone()),
+            address_router::new_router().with_state(address_client.clone()),
         )
         .layer(axum::middleware::from_fn(append_headers));
 

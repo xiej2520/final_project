@@ -150,7 +150,7 @@ pub async fn search_anywhere(
 // other data ignored
 #[derive(Debug, Deserialize)]
 struct PhotonResponse {
-    features: Vec<Feature>,
+    features: Option<Vec<Feature>>,
 }
 #[derive(Debug, Deserialize)]
 struct Feature {
@@ -163,53 +163,66 @@ struct Geometry {
 }
 #[derive(Debug, Deserialize)]
 struct Properties {
-    name: String,
+    name: Option<String>,
+    street: Option<String>,
     extent: Option<Vec<f64>>,
 }
 
 impl From<PhotonResponse> for Vec<InBBoxObject> {
     fn from(response: PhotonResponse) -> Self {
-        response
-            .features
-            .into_iter()
-            .map(|feature| InBBoxObject {
-                name: feature.properties.name,
-                coordinates: Coordinates {
-                    lat: feature.geometry.coordinates[1],
-                    lon: feature.geometry.coordinates[0],
-                },
-            })
-            .collect()
+        match response.features {
+            Some(features) => features
+                .into_iter()
+                .map(|feature| InBBoxObject {
+                    name: feature
+                        .properties
+                        .name
+                        .or(feature.properties.street)
+                        .unwrap_or("".into()),
+                    coordinates: Coordinates {
+                        lat: feature.geometry.coordinates[1],
+                        lon: feature.geometry.coordinates[0],
+                    },
+                })
+                .collect(),
+            None => vec![],
+        }
     }
 }
 
 impl From<PhotonResponse> for Vec<AnywhereObject> {
     fn from(response: PhotonResponse) -> Self {
-        response
-            .features
-            .into_iter()
-            .map(|feature| AnywhereObject {
-                name: feature.properties.name,
-                coordinates: Coordinates {
-                    lat: feature.geometry.coordinates[1],
-                    lon: feature.geometry.coordinates[0],
-                },
-                bbox: match feature.properties.extent {
-                    Some(ext) => BoundingBox {
-                        minLat: ext[3],
-                        minLon: ext[0],
-                        maxLat: ext[1],
-                        maxLon: ext[2],
+        match response.features {
+            Some(features) => features
+                .into_iter()
+                .map(|feature| AnywhereObject {
+                    name: feature
+                        .properties
+                        .name
+                        .or(feature.properties.street)
+                        .unwrap_or("".into()),
+                    coordinates: Coordinates {
+                        lat: feature.geometry.coordinates[1],
+                        lon: feature.geometry.coordinates[0],
                     },
-                    None => BoundingBox {
-                        minLat: feature.geometry.coordinates[1],
-                        minLon: feature.geometry.coordinates[0],
-                        maxLat: feature.geometry.coordinates[1],
-                        maxLon: feature.geometry.coordinates[0],
+                    bbox: match feature.properties.extent {
+                        Some(ext) => BoundingBox {
+                            minLat: ext[3],
+                            minLon: ext[0],
+                            maxLat: ext[1],
+                            maxLon: ext[2],
+                        },
+                        None => BoundingBox {
+                            minLat: feature.geometry.coordinates[1],
+                            minLon: feature.geometry.coordinates[0],
+                            maxLat: feature.geometry.coordinates[1],
+                            maxLon: feature.geometry.coordinates[0],
+                        },
                     },
-                },
-            })
-            .collect()
+                })
+                .collect(),
+            None => vec![],
+        }
     }
 }
 
