@@ -2,7 +2,6 @@ use std::net::SocketAddr;
 
 use axum::Router;
 
-use server::db_queries::DbClient;
 use tower::ServiceBuilder;
 
 use tower_http::trace::TraceLayer;
@@ -18,11 +17,13 @@ use server::{append_headers, init_logging, print_request_response};
 #[tokio::main]
 async fn main() {
     init_logging();
-    let search_client = HttpClient::new(CONFIG.search_url).unwrap();
-    let db_client = Box::leak(Box::new(DbClient::new().await.unwrap()));
+    let search_client = HttpClient::new(&CONFIG.search_url).unwrap();
 
     let mut search_app = Router::new()
-        .nest("/api", search_router::new_router().with_state(db_client))
+        .nest(
+            "/api",
+            search_router::new_router().with_state(search_client.clone()),
+        )
         .nest(
             "/api",
             address_router::new_router().with_state(search_client.clone()),

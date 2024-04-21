@@ -6,7 +6,6 @@ use axum::{
     Json, Router,
 };
 
-use server::db_queries::DbClient;
 use tokio::sync::RwLock;
 use tower::ServiceBuilder;
 
@@ -21,7 +20,6 @@ use server::{http_client::HttpClient, status_response::StatusResponse};
 
 pub struct ServerState {
     user_store: &'static RwLock<user_controller::UserStore>,
-    db_client: &'static DbClient,
     // no need for Arc as reqwest::Client already implements it
     search_client: HttpClient,
     tile_client: HttpClient,
@@ -31,15 +29,13 @@ pub struct ServerState {
 
 impl ServerState {
     pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
-        let user_store = Box::leak(Box::new(RwLock::new(user_controller::UserStore::default())));
-        let db_client = Box::leak(Box::new(DbClient::new().await?));
-        let search_client = HttpClient::new(CONFIG.search_url)?;
-        let tile_client = HttpClient::new(CONFIG.tile_url)?;
-        let turn_client = HttpClient::new(CONFIG.turn_url)?;
-        let routing_client = HttpClient::new(CONFIG.routing_url)?;
+        let user_store = user_controller::UserStore::default();
+        let search_client = HttpClient::new(&CONFIG.search_url)?;
+        let tile_client = HttpClient::new(&CONFIG.tile_url)?;
+        let turn_client = HttpClient::new(&CONFIG.turn_url)?;
+        let routing_client = HttpClient::new(&CONFIG.routing_url)?;
         Ok(Self {
-            user_store,
-            db_client,
+            user_store: Box::leak(Box::new(RwLock::new(user_store))),
             search_client,
             tile_client,
             turn_client,
@@ -59,7 +55,6 @@ async fn main() {
 
     let ServerState {
         user_store,
-        db_client,
         search_client,
         tile_client,
         turn_client,
@@ -85,7 +80,10 @@ async fn main() {
         .nest("/", convert_router::new_router())
         .nest("/", restricted_app)
         .nest("/api", user_router::new_router().with_state(user_store))
-        .nest("/api", search_router::new_router().with_state(db_client))
+        .nest(
+            "/api",
+            search_router::new_router().with_state(search_client.clone()),
+        )
         .nest(
             "/",
             tile_router::new_router().with_state(tile_client.clone()),
