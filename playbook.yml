@@ -49,6 +49,15 @@
         cmd: cargo build --release
         creates: ./target/release
 
+- name: Copy config files
+  hosts: all
+  tasks:
+    - name: Copy config files
+      ansible.builtin.copy:
+        src: ./config.toml
+        dest: .
+        mode: '0644'
+
 - name: Setup routing microservice
   hosts: routing
   tasks:
@@ -57,12 +66,6 @@
         src: ./target/release/routing
         dest: /bin
         mode: '0755'
-
-    - name: Copy config file
-      ansible.builtin.copy:
-        src: ./config.toml
-        dest: .
-        mode: '0644'
 
     - name: Copy OSRM data
       ansible.builtin.copy:
@@ -84,6 +87,64 @@
         name: routing
         image: ubuntu:jammy
         command: routing
+        volumes:
+          - /bin:/bin
+          - ./config.toml:/config.toml
+        network_mode: host
+
+- name: Setup search microservice
+  hosts: search
+  tasks:
+    - name: Copy search binary
+      ansible.builtin.copy:
+        src: ./target/release/search
+        dest: /bin
+        mode: '0755'
+
+    - name: Update apt and install zstd
+      ansible.builtin.apt:
+        name: zstd
+        state: present
+        update_cache: true
+
+    - name: Install docker-volume-snapshot
+      ansible.builtin.uri:
+        url: https://raw.githubusercontent.com/junedkhatri31/docker-volume-snapshot/main/docker-volume-snapshot
+        follow_redirects: true
+        dest: /usr/local/bin/docker-volume-snapshot
+        mode: '0755'
+
+    - name: Copy nominatim-data
+      ansible.builtin.copy:
+        src: /data/nominatim-data.tar.zst
+        dest: /tmp
+        mode: '0644'
+
+    - name: Decompress nominatim-data
+      ansible.builtin.command:
+        cmd: zstd -d /tmp/nominatim-data.tar.zst -o /tmp/nominatim-data.tar
+        creates: /tmp/nominatim-data.tar
+
+    - name: Restore nominatim-data
+      ansible.builtin.command:
+        cmd: docker-volume-snapshot restore /tmp/nominatim-data.tar nominatim-data
+        creates: /var/lib/docker/volumes/nominatim-data/_data
+
+    - name: Start nominatim service
+      community.docker.docker_container:
+        name: nominatim
+        image: mediagis/nominatim:4.4
+        volumes:
+          - nominatim-data:/var/lib/postgresql/14/main
+        env:
+          PBF_URL: https://download.geofabrik.de/europe/monaco-latest.osm.pbf # dummy url
+        network_mode: host
+
+    - name: Start search service
+      community.docker.docker_container:
+        name: search
+        image: ubuntu:jammy
+        command: search
         volumes:
           - /bin:/bin
           - ./config.toml:/config.toml
