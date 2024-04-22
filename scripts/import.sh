@@ -95,17 +95,17 @@ if [[ $IMPORT_NOMINATIM -eq 1 ]]; then
     -e PBF_PATH="/data/${PBF_FILENAME}" \
     mediagis/nominatim:4.4 
   
-  wget -P /data https://github.com/komoot/photon/releases/download/0.5.0/photon-0.5.0.jar
+  mkdir -P /data/photon
+  wget -P /data/photon https://github.com/komoot/photon/releases/download/0.5.0/photon-0.5.0.jar
 
   docker run --net=host --rm \
     -v /data:/data \
-    -v nominatim-data:/photon \
     amazoncorretto:22.0.1-alpine3.19 \
-    java -jar /data/photon-0.5.0.jar \
+    java -jar /data/photon/photon-0.5.0.jar \
     -nominatim-import \
     -host localhost -port 5432 \
     -database nominatim -password qaIACxO6wMR3 \
-    -data-dir /photon
+    -data-dir /data/photon
 
   docker stop nominatim_db
 fi

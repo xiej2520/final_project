@@ -68,10 +68,9 @@ services:
 #     image: amazoncorretto:22.0.1-alpine3.19
 #     volumes:
 #       - /data:/data
-#       - nominatim-data:/photon
 #     ports:
 #       - "2322:2322"
-#     command: java -jar /data/photon-0.5.0.jar -data-dir /photon
+#     command: java -jar /data/photon/photon-0.5.0.jar -data-dir /data/photon
 
 # volumes:
 #   nominatim-data:

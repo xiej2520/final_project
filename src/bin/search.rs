@@ -18,7 +18,7 @@ use server::{init_logging, print_request_response};
 async fn main() {
     init_logging();
     let photon_client = HttpClient::new(CONFIG.photon_url).unwrap();
-    let address_client = HttpClient::new(CONFIG.address_url).unwrap();
+    let nominatim_client = HttpClient::new(CONFIG.nominatim_url).unwrap();
 
     let mut search_app = Router::new()
         .nest(
@@ -27,7 +27,7 @@ async fn main() {
         )
         .nest(
             "/api",
-            address_router::new_router().with_state(address_client.clone()),
+            address_router::new_router().with_state(nominatim_client.clone()),
         );
 
     if !cfg!(feature = "disable_logs") {

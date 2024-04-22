@@ -22,7 +22,7 @@ pub struct ServerState {
     user_store: &'static RwLock<user_controller::UserStore>,
     // no need for Arc as reqwest::Client already implements it
     photon_client: HttpClient,
-    address_client: HttpClient,
+    nominatim_client: HttpClient,
     tile_client: HttpClient,
     turn_client: HttpClient,
     routing_client: HttpClient,
@@ -32,14 +32,14 @@ impl ServerState {
     pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
         let user_store = user_controller::UserStore::default();
         let photon_client = HttpClient::new(CONFIG.photon_url)?;
-        let address_client = HttpClient::new(CONFIG.address_url)?;
+        let nominatim_client = HttpClient::new(CONFIG.nominatim_url)?;
         let tile_client = HttpClient::new(CONFIG.tile_url)?;
         let turn_client = HttpClient::new(CONFIG.turn_url)?;
         let routing_client = HttpClient::new(CONFIG.routing_url)?;
         Ok(Self {
             user_store: Box::leak(Box::new(RwLock::new(user_store))),
             photon_client,
-            address_client,
+            nominatim_client,
             tile_client,
             turn_client,
             routing_client,
@@ -59,7 +59,7 @@ async fn main() {
     let ServerState {
         user_store,
         photon_client,
-        address_client,
+        nominatim_client,
         tile_client,
         turn_client,
         routing_client,
@@ -90,7 +90,7 @@ async fn main() {
         )
         .nest(
             "/api",
-            address_router::new_router().with_state(photon_client.clone()),
+            address_router::new_router().with_state(nominatim_client.clone()),
         )
         .nest(
             "/api",

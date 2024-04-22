@@ -40,7 +40,13 @@ impl UserStore {
         }
     }
 
-    pub async fn add_user(&mut self, user: User, domain: &str, relay_ip: [u8; 4], relay_port: u16) -> Result<String, String> {
+    pub async fn add_user(
+        &mut self,
+        user: User,
+        domain: &str,
+        relay_ip: [u8; 4],
+        relay_port: u16,
+    ) -> Result<String, String> {
         let User {
             username, email, ..
         } = &user;
@@ -79,7 +85,12 @@ impl User {
         }
     }
 
-    pub async fn send_email(&self, domain: &str, relay_ip: [u8; 4], relay_port: u16) -> Result<String, String> {
+    pub async fn send_email(
+        &self,
+        domain: &str,
+        relay_ip: [u8; 4],
+        relay_port: u16,
+    ) -> Result<String, String> {
         // escape special characters in email, including '+'
         let verification_link = Url::parse_with_params(
             format!("http://{}/api/verify", domain).as_str(),
