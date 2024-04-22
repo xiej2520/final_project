@@ -38,51 +38,79 @@
 
     - name: Install Docker SDK for Python
       ansible.builtin.pip:
-        name: docker
+        name:
+          - docker
+          - docker-compose
         state: present
 
 - name: Build binaries
   hosts: localhost
   tasks:
     - name: Build binaries
+      changed_when: false # let cargo handle this
       ansible.builtin.command:
         cmd: cargo build --release
-        creates: ./target/release
 
-- name: Copy config files
+- name: Setup enviornment
   hosts: all
   tasks:
-    - name: Copy config files using jinja
+    - name: Find release binaries
+      ansible.builtin.find:
+        paths: ./target/release
+        file_type: file
+      delegate_to: localhost
+      register: binaries
+
+    - name: Copy release binaries
+      ansible.builtin.copy:
+        src: "{{ item.path }}"
+        dest: ./target/release/
+        mode: '0755'
+      loop: "{{ binaries.files }}"
+
+    - name: Copy docker compose files
+      ansible.builtin.copy:
+        src: ./compose.yml
+        dest: ./compose.yml
+        mode: '0655'
+
+    - name: Copy dotenv fie
+      ansible.builtin.copy:
+        src: ./.env
+        dest: ./.env
+        mode: '0655'
+
+    - name: Copy rust config files using jinja
       ansible.builtin.template:
         src: ./templates/config.toml.j2
         dest: ./config.toml
         mode: '0644'
 
+    - name: Shutdown docker compose
+      community.docker.docker_compose_v2:
+        project_src: .
+        state: absent
+
 - name: Setup nginx
   hosts: nginx
   tasks:
-    - name: Ensure nginx config directory exists
-      ansible.builtin.file:
-        path: /etc/nginx
-        state: directory
-        mode: '0755'
-
     - name: Copy nginx config using jinja
       ansible.builtin.template:
         src: ./templates/nginx.conf.j2
-        dest: /etc/nginx/nginx.conf
+        dest: ./nginx.conf
         mode: '0644'
 
-    - name: Start nginx service
-      community.docker.docker_container:
-        name: nginx
-        image: nginx:latest
-        ports:
-          - "80:80"
-        volumes:
-          - /etc/nginx/nginx.conf:/etc/nginx/nginx.conf
-        state: started
-        restart: true
+    - name: Copy static directory
+      ansible.builtin.copy:
+        src: ./static/
+        dest: ./static/
+        mode: '0655'
+
+    - name: Start nginx loadbalancer
+      community.docker.docker_compose_v2:
+        project_src: .
+        services:
+          - nginx
 
 - name: Setup auth microserve
   hosts: auth
@@ -93,17 +121,11 @@
         dest: /bin
         mode: '0755'
 
-    - name: Start auth service
-      community.docker.docker_container:
-        name: auth
-        image: ubuntu:jammy
-        command: auth
-        volumes:
-          - /bin:/bin
-          - ./config.toml:/config.toml
-        network_mode: host
-        state: started
-        restart: true
+    - name: Start auth microservice
+      community.docker.docker_compose_v2:
+        project_src: .
+        services:
+          - auth
 
 - name: Setup routing microservice
   hosts: routing
@@ -120,87 +142,93 @@
         dest: /data/osrm/
         mode: '0644'
 
-    - name: Start OSRM service
-      community.docker.docker_container:
-        name: osrm
-        image: ghcr.io/project-osrm/osrm-backend
-        command: osrm-routed --algorithm mld /data/{{ REGION }}.osrm
-        volumes:
-          - /data/osrm:/data
-        network_mode: host
-        state: started
-        restart: true
+    - name: Start routing microservice
+      community.docker.docker_compose_v2:
+        project_src: .
+        services:
+          - routing
+          - osrm-backend
 
-    - name: Start routing service
-      community.docker.docker_container:
-        name: routing
-        image: ubuntu:jammy
-        command: routing
-        volumes:
-          - /bin:/bin
-          - ./config.toml:/config.toml
-        network_mode: host
-        state: started
-        restart: true
-
-- name: Setup search microservice
-  hosts: search
+- name: Setup tiles microservice
+  hosts: tiles
   tasks:
-    - name: Copy search binary
+    - name: Copy tiles data
       ansible.builtin.copy:
-        src: ./target/release/search
-        dest: /bin
-        mode: '0755'
-
-    - name: Update apt and install zstd
-      ansible.builtin.apt:
-        name: zstd
-        state: present
-        update_cache: true
-
-    - name: Install docker-volume-snapshot
-      ansible.builtin.uri:
-        url: https://raw.githubusercontent.com/junedkhatri31/docker-volume-snapshot/main/docker-volume-snapshot
-        follow_redirects: true
-        dest: /usr/local/bin/docker-volume-snapshot
-        mode: '0755'
-
-    - name: Copy nominatim-data
-      ansible.builtin.copy:
-        src: /data/nominatim-data.tar.zst
-        dest: /tmp
+        src: /data/tiles/
+        dest: /data/tiles/
         mode: '0644'
 
-    - name: Decompress nominatim-data
-      ansible.builtin.command:
-        cmd: zstd -d /tmp/nominatim-data.tar.zst -o /tmp/nominatim-data.tar
-        creates: /tmp/nominatim-data.tar
+    - name: Copy tileserver config files
+      ansible.builtin.copy:
+        src: /data/tileserver/
+        dest: /data/tileserver/
+        mode: '0644'
 
-    - name: Restore nominatim-data
-      ansible.builtin.command:
-        cmd: docker-volume-snapshot restore /tmp/nominatim-data.tar nominatim-data
-        creates: /var/lib/docker/volumes/nominatim-data/_data
+    - name: Start tiles microservice
+      community.docker.docker_compose_v2:
+        project_src: .
+        services:
+          - tiles
+          - tileserver
 
-    - name: Start nominatim service
-      community.docker.docker_container:
-        name: nominatim
-        image: mediagis/nominatim:4.4
-        volumes:
-          - nominatim-data:/var/lib/postgresql/14/main
-        env:
-          PBF_URL: https://download.geofabrik.de/europe/monaco-latest.osm.pbf # dummy url
-        network_mode: host
-        state: started
-        restart: true
+# - name: Setup search microservice
+#   hosts: search
+#   tasks:
+#     - name: Copy search binary
+#       ansible.builtin.copy:
+#         src: ./target/release/search
+#         dest: /bin
+#         mode: '0755'
 
-    - name: Start search service
-      community.docker.docker_container:
-        name: search
-        image: ubuntu:jammy
-        command: search
-        volumes:
-          - /bin:/bin
-          - ./config.toml:/config.toml
-        network_mode: host
-        state: started
-        restart: true
+#     - name: Update apt and install zstd
+#       ansible.builtin.apt:
+#         name: zstd
+#         state: present
+#         update_cache: true
+
+#     - name: Install docker-volume-snapshot
+#       ansible.builtin.uri:
+#         url: https://raw.githubusercontent.com/junedkhatri31/docker-volume-snapshot/main/docker-volume-snapshot
+#         follow_redirects: true
+#         dest: /usr/local/bin/docker-volume-snapshot
+#         mode: '0755'
+
+#     - name: Copy nominatim-data
+#       ansible.builtin.copy:
+#         src: /data/nominatim-data.tar.zst
+#         dest: /tmp
+#         mode: '0644'
+
+#     - name: Decompress nominatim-data
+#       ansible.builtin.command:
+#         cmd: zstd -d /tmp/nominatim-data.tar.zst -o /tmp/nominatim-data.tar
+#         creates: /tmp/nominatim-data.tar
+
+#     - name: Restore nominatim-data
+#       ansible.builtin.command:
+#         cmd: docker-volume-snapshot restore /tmp/nominatim-data.tar nominatim-data
+#         creates: /var/lib/docker/volumes/nominatim-data/_data
+
+#     - name: Start nominatim service
+#       community.docker.docker_container:
+#         name: nominatim
+#         image: mediagis/nominatim:4.4
+#         volumes:
+#           - nominatim-data:/var/lib/postgresql/14/main
+#         env:
+#           PBF_URL: https://download.geofabrik.de/europe/monaco-latest.osm.pbf # dummy url
+#         network_mode: host
+#         state: started
+#         restart: true
+
+#     - name: Start search service
+#       community.docker.docker_container:
+#         name: search
+#         image: ubuntu:jammy
+#         command: search
+#         volumes:
+#           - /bin:/bin
+#           - ./config.toml:/config.toml
+#         network_mode: host
+#         state: started
+#         restart: true

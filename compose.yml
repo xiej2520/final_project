@@ -1,32 +1,34 @@
 services:
+  # loadbalancer
   nginx:
     image: nginx:latest
     ports:
       - "80:80"
     volumes:
       - type: bind
-        source: nginx.conf
+        source: ./nginx.conf
         target: /etc/nginx/nginx.conf
       - ./static:/usr/share/nginx/html
-    network_mode: host
-  nominatim:
-    image: mediagis/nominatim:4.4
+  
+  # auth microservice
+  auth:
+    image: ubuntu:jammy
     volumes:
-      - nominatim-data:/var/lib/postgresql/14/main
+      - ./target/release:/bin
+      - ./config.toml:/config.toml
     ports:
-      - "8080:8080"
-      - "5432:5432"
-    environment:
-      - PBF_PATH=/data/${REGION:?}.osm.pbf
-  # nominatim reverse geocoding is much better than photon
-  photon:
-    image: amazoncorretto:22.0.1-alpine3.19
+      - "${AUTH_PORT:?}:8000"
+    command: auth
+
+  # routing microservice
+  routing:
+    image: ubuntu:jammy
     volumes:
-      - /data:/data
-      - nominatim-data:/photon
+      - ./target/release:/bin
+      - ./config.toml:/config.toml
     ports:
-      - "2322:2322"
-    command: java -jar /data/photon-0.5.0.jar -data-dir /photon
+      - "${ROUTING_PORT:?}:8000"
+    command: routing
   osrm-backend:
     image: ghcr.io/project-osrm/osrm-backend
     command: osrm-routed --algorithm mld /data/${REGION:?}.osrm
@@ -34,6 +36,16 @@ services:
       - /data/osrm:/data
     ports:
       - "5000:5000"
+
+  # tiles microservice
+  tiles:
+    image: ubuntu:jammy
+    volumes:
+      - ./target/release:/bin
+      - ./config.toml:/config.toml
+    ports:
+      - "${TILES_PORT:?}:8000"
+    command: tiles
   tileserver:
     image: maptiler/tileserver-gl:latest
     volumes:
@@ -42,6 +54,25 @@ services:
     ports:
       - "8081:8080"
 
-volumes:
-  nominatim-data:
-    external: true
+#   nominatim:
+#     image: mediagis/nominatim:4.4
+#     volumes:
+#       - nominatim-data:/var/lib/postgresql/14/main
+#     ports:
+#       - "8080:8080"
+#       - "5432:5432"
+#     environment:
+#       - PBF_PATH=/data/${REGION:?}.osm.pbf
+#   # nominatim reverse geocoding is much better than photon
+#   photon:
+#     image: amazoncorretto:22.0.1-alpine3.19
+#     volumes:
+#       - /data:/data
+#       - nominatim-data:/photon
+#     ports:
+#       - "2322:2322"
+#     command: java -jar /data/photon-0.5.0.jar -data-dir /photon
+
+# volumes:
+#   nominatim-data:
+#     external: true

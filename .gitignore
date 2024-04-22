@@ -49,5 +49,11 @@ config.toml
 # log files
 logs/*
 
+# docker compose enviornment variables
+.env
+
 # ansible inventory
 inventory.ini
+
+# vscode setting
+.vscode

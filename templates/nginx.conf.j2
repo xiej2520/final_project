@@ -13,21 +13,33 @@ events {
 http {
     upstream auth {
         {% for host in groups['auth'] %}
-        server {{ hostvars[host]['ansible_host'] }}:{{ HTTP_PORT | default(8000) }};
+        server {{ hostvars[host]['ansible_host'] }}:{{ hostvars[host]['http_port'] | default(8000) }};
         {% endfor %}
     }
 
     upstream routing {
         {% for host in groups['routing'] %}
-        server {{ hostvars[host]['ansible_host'] }}:{{ HTTP_PORT | default(8000) }};
+        server {{ hostvars[host]['ansible_host'] }}:{{ hostvars[host]['http_port'] | default(8000) }};
         {% endfor %}
     }
 
     {# upstream search {
         {% for host in groups['search']%}
-        server {{ hostvars[host]['ansible_host'] }}:{{ HTTP_PORT | default(8000) }};
+        server {{ hostvars[host]['ansible_host'] }}:{{ hostvars[host]['http_port'] | default(8000) }};
         {% endfor %}
     } #}
+
+    upstream tiles {
+        {% for host in groups['tiles'] %}
+        server {{ hostvars[host]['ansible_host'] }}:{{ hostvars[host]['http_port'] | default(8000) }};
+        {% endfor %}
+    }
+
+    upstream tileserver {
+        {% for host in groups['tiles'] %}
+        server {{ hostvars[host]['ansible_host'] }}:8081;
+        {% endfor %}
+    }
 
     include       /etc/nginx/mime.types;
     default_type  application/octet-stream;
@@ -59,6 +71,9 @@ http {
         server_name {{ DOMAIN }};
         {% endif %}
 
+        root /usr/share/nginx/html;
+        index index.html index.htm;
+
         proxy_connect_timeout 10s;
         proxy_read_timeout 10s;
         proxy_send_timeout 10s;
@@ -67,27 +82,6 @@ http {
 
         location @error401 {
             return 401;
-        }
-
-        location /tiles {
-            # Don't need auth for tiles?
-            #auth_request /auth;
-            #auth_request_set $auth_status $upstream_status;
-            #
-            ## send 401 page if unauthorized
-            #error_page 401 = @error401;
-            
-            # change to tileserver url
-            #proxy_pass http://host.docker.internal:8081/styles/osm-bright/256;
-            #proxy_pass http://localhost:8081/styles/osm-bright/256;
-            proxy_pass http://localhost:8081/styles/maptiler-toner-gl/256;
-
-            proxy_cache TileserverCache;
-            proxy_cache_valid 200 1h;
-
-            # for testing purposes
-            add_header X-CSE356 {{ SUBMISSION_ID | default("FIX_ME") }};
-            add_header X-Cache-Status $upstream_cache_status;
         }
         
         location /auth/verify_session {
@@ -105,9 +99,6 @@ http {
             proxy_set_header Host $host;
             proxy_set_header Content-Type "application/json";
             proxy_set_header Cookie $http_cookie;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
         }
 
         location /api/route {
@@ -120,9 +111,6 @@ http {
             proxy_set_header Host $host;
             proxy_set_header Content-Type "application/json";
             proxy_set_header Cookie $http_cookie;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
         }
 
         {# location ~* ^/api/(search|address) {
@@ -135,10 +123,40 @@ http {
             proxy_set_header Host $host;
             proxy_set_header Content-Type "application/json";
             proxy_set_header Cookie $http_cookie;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
         } #}
+
+        location /tiles {
+            # auth_request /auth/verify_session;
+            # auth_request_set $auth_status $upstream_status;
+            # error_page 401 = @error401;
+
+            proxy_pass http://tileserver/styles/osm-bright/256;
+            proxy_cache TileserverCache;
+            proxy_cache_valid 200 1h;
+        }
+
+        location /turn {
+            # auth_request /auth/verify_session;
+            # auth_request_set $auth_status $upstream_status;
+            # error_page 401 = @error401;
+
+            proxy_pass http://tiles;
+            proxy_pass_request_body off; 
+            proxy_set_header Host $host;
+            proxy_set_header Cookie $http_cookie;
+        }
+
+        location /convert {
+            auth_request /auth/verify_session; 
+            auth_request_set $auth_status $upstream_status; 
+            error_page 401 = @error401;
+
+            proxy_pass http://tiles;
+            proxy_pass_request_body on;
+            proxy_set_header Host $host;
+            proxy_set_header Content-Type "application/json";
+            proxy_set_header Cookie $http_cookie;
+        }
     }
 
 }

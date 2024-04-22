@@ -1,6 +1,6 @@
 # http things
-ip = [{{ hostvars[inventory_hostname]['ansible_host'].split('.')|join(', ') }}]
-http_port = {{ HTTP_PORT | default(8000) }}
+ip = [0, 0, 0, 0]
+http_port = 8000 
 domain = "{{ DOMAIN | default(hostvars['nginx']['ansible_host']) }}" 
 
 # email stuff
