@@ -95,7 +95,7 @@ if [[ $IMPORT_NOMINATIM -eq 1 ]]; then
     -e PBF_PATH="/data/${PBF_FILENAME}" \
     mediagis/nominatim:4.4 
   
-  mkdir -P /data/photon
+  mkdir -p /data/photon
   wget -P /data/photon https://github.com/komoot/photon/releases/download/0.5.0/photon-0.5.0.jar
 
   docker run --net=host --rm \
