@@ -73,28 +73,30 @@ impl From<NomDetailsResponse> for AddressResponse {
 //        }
 //    }
 //}
-//
-//#[derive(Debug, Deserialize, Clone)]
-//struct PhotonRevGeo {
-//    features: Vec<PhotonRevFeature>,
-//}
-//#[derive(Debug, Deserialize, Clone)]
-//struct PhotonRevFeature {
-//    properties: PhotonRevProperties,
-//}
-//#[derive(Debug, Deserialize, Clone)]
-//struct PhotonRevProperties {
-//    housenumber: Option<String>,
-//    street: Option<String>,
-//    city: Option<String>,
-//    //town: Option<String>,
-//    //village: Option<String>,
-//    //hamlet: Option<String>,
-//    district: Option<String>,
-//    state: Option<String>,
-//    country: Option<String>,
-//    countrycode: Option<String>,
-//}
+
+#[derive(Debug, Deserialize, Clone)]
+struct PhotonRevResponse {
+    features: Vec<PhotonRevFeature>,
+}
+#[derive(Debug, Deserialize, Clone)]
+struct PhotonRevFeature {
+    properties: PhotonRevProperties,
+}
+#[derive(Debug, Deserialize, Clone)]
+#[allow(dead_code)]
+struct PhotonRevProperties {
+    osm_id: i64,
+    housenumber: Option<String>,
+    street: Option<String>,
+    city: Option<String>,
+    //town: Option<String>,
+    //village: Option<String>,
+    //hamlet: Option<String>,
+    district: Option<String>,
+    state: Option<String>,
+    country: Option<String>,
+    countrycode: Option<String>,
+}
 //impl From<PhotonRevGeo> for AddressObject {
 //    fn from(resp: PhotonRevGeo) -> Self {
 //        let prop = resp.features[0].properties.clone();
@@ -112,14 +114,15 @@ impl From<NomDetailsResponse> for AddressResponse {
 //}
 
 pub async fn get_address(
-    client: &HttpClient,
+    photon_client: &HttpClient,
+    nominatim_client: &HttpClient,
     lat: f64,
     lon: f64,
 ) -> Result<AddressResponse, String> {
-    let url = format!("reverse?lat={lat}&lon={lon}&format=jsonv2&layer=address");
-    //let url = format!("/reverse?lat={lat}&lon={lon}&layer=house");
-
-    let builder = client.get(&url).await.map_err(|e| {
+    // find osmid, then query nominatim for the addresstags
+    // try photon revgeo first
+    let url = format!("/reverse?lat={lat}&lon={lon}"); // don't use &layer=house???
+    let builder = photon_client.get(&url).await.map_err(|e| {
         tracing::error!("{e}");
         e.to_string()
     })?;
@@ -128,15 +131,36 @@ pub async fn get_address(
         e.to_string()
     })?;
 
-    let resp = serde_json::from_str::<NomRevResponse>(
-        response.text().await.map_err(|e| e.to_string())?.as_str(),
+    let resp = serde_json::from_str::<PhotonRevResponse>(
+        dbg!(response.text().await.map_err(|e| e.to_string())?.as_str()),
     )
     .map_err(|e| e.to_string())?;
 
-    let osmid = resp.osm_id;
+    tracing::info!("{resp:?}");
+    let mut osmid = resp.features[0].properties.osm_id;
+    if resp.features[0].properties.housenumber.is_none() {
+        // fallback to nominatim revgeo
+        let url = format!("reverse?lat={lat}&lon={lon}&format=jsonv2");
+
+        let builder = nominatim_client.get(&url).await.map_err(|e| {
+            tracing::error!("{e}");
+            e.to_string()
+        })?;
+        let response = builder.send().await.map_err(|e| {
+            tracing::error!("{e}");
+            e.to_string()
+        })?;
+
+        let resp = serde_json::from_str::<NomRevResponse>(
+            dbg!(response.text().await.map_err(|e| e.to_string())?.as_str()),
+        )
+        .map_err(|e| e.to_string())?;
+        osmid = resp.osm_id;
+    }
+
     let url = format!("details?osmtype=W&osmid={osmid}&format=json");
 
-    let builder = client.get(&url).await.map_err(|e| {
+    let builder = nominatim_client.get(&url).await.map_err(|e| {
         tracing::error!("{e}");
         e.to_string()
     })?;

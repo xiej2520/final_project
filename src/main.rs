@@ -90,7 +90,7 @@ async fn main() {
         )
         .nest(
             "/api",
-            address_router::new_router().with_state(nominatim_client.clone()),
+            address_router::new_router().with_state((photon_client.clone(), nominatim_client.clone())),
         )
         .nest(
             "/api",

@@ -17,16 +17,16 @@ pub struct AddressParams {
     lat: f64,
     lon: f64,
 }
-pub fn new_router() -> Router<HttpClient> {
+pub fn new_router() -> Router<(HttpClient, HttpClient)> {
     Router::new().route("/address", post(address_handler))
 }
 
 #[debug_handler]
 async fn address_handler(
-    State(client): State<HttpClient>,
+    State((photon_client, nominatim_client)): State<(HttpClient, HttpClient)>,
     Json(AddressParams { lat, lon }): Json<AddressParams>,
 ) -> Response {
-    match get_address(&client, lat, lon).await {
+    match get_address(&photon_client, &nominatim_client, lat, lon).await {
         Ok(address) => Json(address).into_response(),
         Err(e) => {
             eprintln!("Error: {}", e);
