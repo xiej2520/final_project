@@ -6,9 +6,9 @@ use tower::ServiceBuilder;
 
 use tower_http::trace::TraceLayer;
 
-use server::http_client::HttpClient;
-use server::routers::*;
 use server::CONFIG;
+use server::http_client::HttpClient;
+use server::routers::{search_router, address_router};
 use server::{append_headers, init_logging, print_request_response};
 
 /// Runs a search and reverse geoencoding (address) service
@@ -27,8 +27,7 @@ async fn main() {
         .nest(
             "/api",
             address_router::new_router().with_state(search_client.clone()),
-        )
-        .layer(axum::middleware::from_fn(append_headers));
+        );
 
     if !cfg!(feature = "disable_logs") {
         search_app = search_app.layer(

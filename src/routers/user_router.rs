@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 use tower_sessions::Session;
 
-use crate::controllers::user_controller::*;
+use crate::{controllers::user_controller::*, CONFIG};
 use crate::status_response::StatusResponse;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -20,8 +20,8 @@ struct AddUserBody {
 
 #[derive(Debug, Clone, Deserialize)]
 struct VerifyParams {
-    email: Option<String>,
-    key: Option<String>,
+    email: String,
+    key: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -55,29 +55,11 @@ async fn add_user_handler(
     }): Json<AddUserBody>,
 ) -> Json<StatusResponse> {
     let user = User::new(&username, &password, &email);
-    {
-        let store = store.read().await;
-        if store.get_user(&username).is_some() {
-            return Json(StatusResponse::new_err(format!(
-                "User named '{username}' already exists"
-            )));
-        }
-        if store.get_user_by_email(&email).is_some() {
-            return Json(StatusResponse::new_err(format!(
-                "Email '{email}' already registered"
-            )));
-        }
-    }
-    match user.send_email().await {
-        Ok(link) => {
-            let mut store = store.write().await;
-            match store.add_user(user) {
-                Ok(()) => Json(StatusResponse::new_ok(format!(
-                    "User added, verification url={link}",
-                ))),
-                Err(message) => Json(StatusResponse::new_err(message)),
-            }
-        }
+    let mut store = store.write().await;
+    match store.add_user(user, CONFIG.relay_ip, CONFIG.relay_port) {
+        Ok(link) => Json(StatusResponse::new_ok(format!(
+            "User added, verification url={link}",
+        ))),
         Err(message) => Json(StatusResponse::new_err(message)),
     }
 }
@@ -87,19 +69,10 @@ async fn verify_user_handler(
     State(store): State<&'static RwLock<UserStore>>,
     Query(VerifyParams { email, key }): Query<VerifyParams>,
 ) -> Json<StatusResponse> {
-    let Some(email) = email else {
-        return Json(StatusResponse::new_err("Email not provided".to_owned()));
-    };
-    let Some(key) = key else {
-        return Json(StatusResponse::new_err("Key not provided".to_owned()));
-    };
     let mut store = store.write().await;
-    match store.get_user_by_email_mut(&email) {
-        Some(user) => match user.enable(&key) {
-            Ok(()) => Json(StatusResponse::new_ok("User enabled".to_owned())),
-            Err(message) => Json(StatusResponse::new_err(message)),
-        },
-        None => Json(StatusResponse::new_err("User not found".to_owned())),
+    match store.verify_user(&email, &key) {
+        Ok(()) => Json(StatusResponse::new_ok("User verified".to_owned())),
+        Err(message) => Json(StatusResponse::new_err(message)),
     }
 }
 

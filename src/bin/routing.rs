@@ -5,9 +5,9 @@ use axum::Router;
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 
-use server::http_client::HttpClient;
-use server::routers::*;
 use server::CONFIG;
+use server::http_client::HttpClient;
+use server::routeres::route_router;
 use server::{append_headers, init_logging, print_request_response};
 
 /// Runs a routing service
@@ -18,12 +18,10 @@ async fn main() {
     init_logging();
     let routing_client = HttpClient::new(CONFIG.routing_url).unwrap();
 
-    let mut routing_app = Router::new()
-        .nest(
-            "/api",
-            route_router::new_router().with_state(routing_client.clone()),
-        )
-        .layer(axum::middleware::from_fn(append_headers));
+    let mut routing_app = Router::new().nest(
+        "/api",
+        route_router::new_router().with_state(routing_client.clone()),
+    );
 
     if !cfg!(feature = "disable_logs") {
         routing_app = routing_app.layer(
