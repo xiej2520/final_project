@@ -8,7 +8,7 @@ use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 
 use server::controllers::user_controller;
-use server::routers::user_router;
+use server::routers::{auth_router, user_router};
 use server::CONFIG;
 use server::{init_logging, print_request_response};
 use tower_sessions::cookie::time::Duration;
@@ -27,6 +27,7 @@ async fn main() {
     let user_store = Box::leak(Box::new(RwLock::new(user_controller::UserStore::default())));
 
     let mut auth_app = Router::new()
+        .nest("/auth", auth_router::new_router())
         .nest("/api", user_router::new_router().with_state(user_store))
         .layer(session_layer);
 

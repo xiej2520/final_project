@@ -81,6 +81,8 @@
           - "80:80"
         volumes:
           - /etc/nginx/nginx.conf:/etc/nginx/nginx.conf
+        state: started
+        restart: true
 
 - name: Setup auth microserve
   hosts: auth
@@ -100,6 +102,8 @@
           - /bin:/bin
           - ./config.toml:/config.toml
         network_mode: host
+        state: started
+        restart: true
 
 - name: Setup routing microservice
   hosts: routing
@@ -124,6 +128,8 @@
         volumes:
           - /data/osrm:/data
         network_mode: host
+        state: started
+        restart: true
 
     - name: Start routing service
       community.docker.docker_container:
@@ -134,6 +140,8 @@
           - /bin:/bin
           - ./config.toml:/config.toml
         network_mode: host
+        state: started
+        restart: true
 
 - name: Setup search microservice
   hosts: search
@@ -182,6 +190,8 @@
         env:
           PBF_URL: https://download.geofabrik.de/europe/monaco-latest.osm.pbf # dummy url
         network_mode: host
+        state: started
+        restart: true
 
     - name: Start search service
       community.docker.docker_container:
@@ -192,3 +202,5 @@
           - /bin:/bin
           - ./config.toml:/config.toml
         network_mode: host
+        state: started
+        restart: true

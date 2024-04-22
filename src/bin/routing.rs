@@ -8,7 +8,7 @@ use tower_http::trace::TraceLayer;
 use server::http_client::HttpClient;
 use server::routers::route_router;
 use server::CONFIG;
-use server::{init_logging, login_gateway, print_request_response};
+use server::{init_logging, print_request_response};
 
 /// Runs a routing service
 /// Reverse proxy traffic here *after* verifyinng authentication, this doesn't
@@ -29,10 +29,6 @@ async fn main() {
                 .layer(TraceLayer::new_for_http())
                 .layer(axum::middleware::from_fn(print_request_response)),
         );
-    }
-
-    if !cfg!(feature = "disable_auth") {
-        routing_app = routing_app.layer(axum::middleware::from_fn(login_gateway));
     }
 
     let addr = SocketAddr::from((CONFIG.ip, CONFIG.http_port));

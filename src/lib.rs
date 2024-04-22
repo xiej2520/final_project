@@ -7,16 +7,13 @@ pub mod status_response;
 use axum::{
     body::{Body, Bytes},
     http::StatusCode,
-    response::{IntoResponse, Response},
-    Json,
+    response::Response,
 };
 use axum::{extract::Request, middleware::Next};
 use chrono::Local;
 use config::Config;
 use http_body_util::BodyExt;
 use once_cell::sync::Lazy;
-use status_response::StatusResponse;
-use tower_sessions::Session;
 use tracing_subscriber::{filter::LevelFilter, layer::SubscriberExt, Layer};
 
 #[derive(Debug)]
@@ -61,16 +58,6 @@ pub async fn append_headers(req: Request, next: Next) -> Response<Body> {
     res.headers_mut()
         .insert("x-cse356", CONFIG.submission_id.parse().unwrap());
     res
-}
-
-pub async fn login_gateway(req: Request, next: Next) -> Response {
-    match req.extensions().get::<Session>() {
-        Some(session) => match session.get::<String>("username").await {
-            Ok(Some(_)) => next.run(req).await,
-            _ => Json(StatusResponse::new_err("Unauthorized".to_owned())).into_response(),
-        },
-        None => Json(StatusResponse::new_err("Unauthorized".to_owned())).into_response(),
-    }
 }
 
 pub async fn print_request_response(
