@@ -34,7 +34,8 @@ relay_ip = [130, 245, 171, 151]
 relay_port = 11587
 
 # urls for services (trailing slash significant!)
-search_url = "http://localhost:8080"
+search_url = "http://localhost:2322/api"
+address_url = "http://localhost:8080"
 turn_url = "http://localhost:8081/styles/osm-bright/static/"
 routing_url = "http://localhost:5000/route/v1/driving/"
 

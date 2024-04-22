@@ -11,17 +11,23 @@ events {
 
 
 http {
-    upstream routing {
-        {% for host in groups['routing'] %}
-        server {{ hostvars[host]['ansible_host'] }}:{{ HTTP_PORT | default(80) }};
+    upstream auth {
+        {% for host in groups['auth'] %}
+        server {{ hostvars[host]['ansible_host'] }}:{{ HTTP_PORT | default(8000) }};
         {% endfor %}
     }
 
-    upstream search {
-        {% for host in groups['search']%}
-        server {{ hostvars[host]['ansible_host'] }}:{{ HTTP_PORT | default(80) }};
+    upstream routing {
+        {% for host in groups['routing'] %}
+        server {{ hostvars[host]['ansible_host'] }}:{{ HTTP_PORT | default(8000) }};
         {% endfor %}
     }
+
+    {# upstream search {
+        {% for host in groups['search']%}
+        server {{ hostvars[host]['ansible_host'] }}:{{ HTTP_PORT | default(8000) }};
+        {% endfor %}
+    } #}
 
     include       /etc/nginx/mime.types;
     default_type  application/octet-stream;
@@ -86,6 +92,18 @@ http {
             add_header X-Cache-Status $upstream_cache_status;
         }
         
+        location ~* ^/api/(adduser|login|logout|user|verify) {
+            proxy_pass http://auth;
+
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+
+            proxy_pass_request_body on;
+            proxy_set_header Content-Type "application/json";
+        }
+
         location /api/route {
             proxy_pass http://routing;
 
@@ -98,7 +116,7 @@ http {
             proxy_set_header Content-Type "application/json";
         }
 
-        location ~* ^/api/(search|address) {
+        {# location ~* ^/api/(search|address) {
             proxy_pass http://search;
 
             proxy_set_header Host $host;
@@ -109,7 +127,7 @@ http {
 
             proxy_pass_request_body on;
             proxy_set_header Content-Type "application/json";
-        }
+        } #}
     }
 
 }

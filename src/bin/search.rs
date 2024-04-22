@@ -6,10 +6,10 @@ use tower::ServiceBuilder;
 
 use tower_http::trace::TraceLayer;
 
-use server::CONFIG;
 use server::http_client::HttpClient;
-use server::routers::{search_router, address_router};
-use server::{append_headers, init_logging, print_request_response};
+use server::routers::{address_router, search_router};
+use server::CONFIG;
+use server::{init_logging, login_gateway, print_request_response};
 
 /// Runs a search and reverse geoencoding (address) service
 /// Reverse proxy traffic here *after* verifyinng authentication, this doesn't
@@ -28,8 +28,7 @@ async fn main() {
         .nest(
             "/api",
             address_router::new_router().with_state(address_client.clone()),
-        )
-        .layer(axum::middleware::from_fn(append_headers));
+        );
 
     if !cfg!(feature = "disable_logs") {
         search_app = search_app.layer(
@@ -37,6 +36,10 @@ async fn main() {
                 .layer(TraceLayer::new_for_http())
                 .layer(axum::middleware::from_fn(print_request_response)),
         );
+    }
+
+    if !cfg!(feature = "disable_auth") {
+        search_app = search_app.layer(axum::middleware::from_fn(login_gateway));
     }
 
     let addr = SocketAddr::from((CONFIG.ip, CONFIG.http_port));

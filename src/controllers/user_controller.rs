@@ -30,7 +30,7 @@ impl UserStore {
         self.users.get(username)
     }
 
-    pub fn verify_user(&self, email: &str, key: &str) -> Result<(), String> {
+    pub fn verify_user(&mut self, email: &str, key: &str) -> Result<(), String> {
         match self.usernames.get(email) {
             Some(username) => match self.users.get_mut(username) {
                 Some(user) => user.enable(key),
@@ -40,7 +40,7 @@ impl UserStore {
         }
     }
 
-    pub fn add_user(&mut self, user: User, relay_ip: [u8; 4], relay_port: u16) -> Result<(), String> {
+    pub async fn add_user(&mut self, user: User, domain: &str, relay_ip: [u8; 4], relay_port: u16) -> Result<String, String> {
         let User {
             username, email, ..
         } = &user;
@@ -49,7 +49,7 @@ impl UserStore {
             Entry::Vacant(vacant_user) => match self.usernames.entry(email.clone()) {
                 Entry::Occupied(_) => Err(format!("Email '{email}' already registered")),
                 Entry::Vacant(vacant_email) => {
-                    match user.send_email(relay_ip, relay_port).await {
+                    match user.send_email(domain, relay_ip, relay_port).await {
                         Ok(link) => {
                             vacant_email.insert(username.clone());
                             vacant_user.insert(user);
@@ -79,10 +79,10 @@ impl User {
         }
     }
 
-    pub async fn send_email(&self, relay_ip: [u8; 4], relay_port: u16) -> Result<String, String> {
+    pub async fn send_email(&self, domain: &str, relay_ip: [u8; 4], relay_port: u16) -> Result<String, String> {
         // escape special characters in email, including '+'
         let verification_link = Url::parse_with_params(
-            format!("http://{}/api/verify", CONFIG.domain).as_str(),
+            format!("http://{}/api/verify", domain).as_str(),
             &[("email", self.email.as_str()), ("key", self.key.as_str())],
         )
         .map_err(|e| e.to_string())?

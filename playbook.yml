@@ -82,6 +82,25 @@
         volumes:
           - /etc/nginx/nginx.conf:/etc/nginx/nginx.conf
 
+- name: Setup auth microserve
+  hosts: auth
+  tasks:
+    - name: Copy auth binary
+      ansible.builtin.copy:
+        src: ./target/release/auth
+        dest: /bin
+        mode: '0755'
+
+    - name: Start auth service
+      community.docker.docker_container:
+        name: auth
+        image: ubuntu:jammy
+        command: auth
+        volumes:
+          - /bin:/bin
+          - ./config.toml:/config.toml
+        network_mode: host
+
 - name: Setup routing microservice
   hosts: routing
   tasks:

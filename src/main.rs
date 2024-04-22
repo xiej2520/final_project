@@ -1,22 +1,18 @@
 use std::net::SocketAddr;
 
-use axum::{extract::Request, middleware::Next};
-use axum::{
-    response::{IntoResponse, Response},
-    Json, Router,
-};
+use axum::Router;
 
 use tokio::sync::RwLock;
 use tower::ServiceBuilder;
 
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
-use tower_sessions::{cookie::time::Duration, Expiry, MemoryStore, Session, SessionManagerLayer};
+use tower_sessions::{cookie::time::Duration, Expiry, MemoryStore, SessionManagerLayer};
 
-use server::routers::*;
+use server::http_client::HttpClient;
 use server::CONFIG;
-use server::{controllers::*, init_logging, print_request_response};
-use server::{http_client::HttpClient, status_response::StatusResponse};
+use server::{controllers::*, routers::*};
+use server::{init_logging, login_gateway, print_request_response};
 
 pub struct ServerState {
     user_store: &'static RwLock<user_controller::UserStore>,
@@ -80,7 +76,6 @@ async fn main() {
 
     let mut gateway = Router::new()
         .nest_service("/", ServeDir::new("static"))
-        .nest("/auth", auth_router::new_router())
         .nest("/", convert_router::new_router())
         .nest("/", restricted_app)
         .nest("/api", user_router::new_router().with_state(user_store))
@@ -111,14 +106,4 @@ async fn main() {
 
     tracing::debug!("Server listening on {}", addr);
     axum::serve(listener, gateway).await.unwrap();
-}
-
-async fn login_gateway(req: Request, next: Next) -> Response {
-    match req.extensions().get::<Session>() {
-        Some(session) => match session.get::<String>("username").await {
-            Ok(Some(_)) => next.run(req).await,
-            _ => Json(StatusResponse::new_err("Unauthorized".to_owned())).into_response(),
-        },
-        None => Json(StatusResponse::new_err("Unauthorized".to_owned())).into_response(),
-    }
 }

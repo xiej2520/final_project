@@ -56,7 +56,7 @@ async fn add_user_handler(
 ) -> Json<StatusResponse> {
     let user = User::new(&username, &password, &email);
     let mut store = store.write().await;
-    match store.add_user(user, CONFIG.relay_ip, CONFIG.relay_port) {
+    match store.add_user(user, &CONFIG.domain, CONFIG.relay_ip, CONFIG.relay_port).await {
         Ok(link) => Json(StatusResponse::new_ok(format!(
             "User added, verification url={link}",
         ))),

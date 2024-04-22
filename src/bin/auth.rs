@@ -7,18 +7,28 @@ use tower::ServiceBuilder;
 
 use tower_http::trace::TraceLayer;
 
-use server::CONFIG;
 use server::controllers::user_controller;
 use server::routers::user_router;
-use server::{append_headers, init_logging, print_request_response};
+use server::CONFIG;
+use server::{init_logging, print_request_response};
+use tower_sessions::cookie::time::Duration;
+use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer};
 
 /// Runs an user creation, login, and authentication service
 #[tokio::main]
 async fn main() {
     init_logging();
+
+    let session_store = MemoryStore::default();
+    let session_layer = SessionManagerLayer::new(session_store)
+        .with_secure(false)
+        .with_expiry(Expiry::OnInactivity(Duration::seconds(3600)));
+
     let user_store = Box::leak(Box::new(RwLock::new(user_controller::UserStore::default())));
 
-    let mut auth_app = Router::new().nest("/api", user_router::new_router().with_state(user_store));
+    let mut auth_app = Router::new()
+        .nest("/api", user_router::new_router().with_state(user_store))
+        .layer(session_layer);
 
     if !cfg!(feature = "disable_logs") {
         auth_app = auth_app.layer(
