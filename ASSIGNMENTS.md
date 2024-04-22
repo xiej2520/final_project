@@ -162,3 +162,22 @@ Response (JSON): A list representing the route from source to destination.
 ]
 
 Hint: Use code and iptables email server rules from Warm-up Project #2.
+
+## Milestone 3
+
+Everything from Milestone #2, plus the following POST route:
+
+Route Endpoint: http://your.server/api/address
+Request Body (JSON):
+{
+  "lat": number,
+  "lon": number
+}
+Response (JSON): The address of the building at the requested location
+{
+  "number": string,
+  "street": string,
+  "city": string,
+  "state": string,
+  "country": string,
+}
