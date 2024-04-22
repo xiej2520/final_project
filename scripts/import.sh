@@ -97,7 +97,7 @@ if [[ $IMPORT_NOMINATIM -eq 1 ]]; then
   
   wget -P /data https://github.com/komoot/photon/releases/download/0.5.0/photon-0.5.0.jar
 
-  docker run --net=host \
+  docker run --net=host --rm \
     -v /data:/data \
     -v nominatim-data:/photon \
     amazoncorretto:22.0.1-alpine3.19 \

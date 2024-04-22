@@ -48,7 +48,7 @@ tile_url = "http://localhost:8081/styles/osm-bright/256/"
 endpoints.
 * Compile with `disable_logs` flag to disable tracing logs.
 
-```Shell
+```shell
 cargo +nightly run -F disable_email -F disable_auth
 ```
 

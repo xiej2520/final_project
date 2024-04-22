@@ -4,7 +4,7 @@ import http from 'k6/http';
 
 const DURATION = 30;
 export let options: Options = {
-  vus: 100,
+  vus: 150,
   duration: `${DURATION}s`,
 };
 
@@ -31,6 +31,7 @@ const locs: [string, number, number][] = [];
 const ESTIMATED_ADDRESS_TIME = 0.5;
 const ESTIMATED_SEARCH_TIME = 0.5;
 const POPULATE_ATTEMPTS = DURATION / (ESTIMATED_ADDRESS_TIME + 2 * ESTIMATED_SEARCH_TIME) * 4;
+console.log(`Attempting to retrieve ${POPULATE_ATTEMPTS} addresses`);
 // disable auth to run
 export default () => {
   /// build set on first run
@@ -55,6 +56,11 @@ export default () => {
         //console.log(address_req, j);
       }
     }
+    console.log(`Found ${locs.length} locations`);
+  }
+  if (__ITER >= locs.length) {
+    return;
+    //fail("Ran out of locations to search for");
   }
   //console.log(`Found ${locs.length} locations for search testing`);
   {
