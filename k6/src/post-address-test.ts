@@ -14,10 +14,10 @@ const rand = (l: number, h: number) => (Math.random() * (h - l) + l);
 //const minlon = -80;
 //const maxlon = -64;
 /// new england
-const minlat = 41.310824;
-const maxlat = 44.980342;
+const minlat = 41.541478;
+const maxlat = 44.898687;
 const minlon = -74.742916;
-const maxlon = -70.676541;
+const maxlon = -71.054832;
 /// monaco
 //const minlat = 43;
 //const maxlat = 44;
@@ -26,7 +26,7 @@ const maxlon = -70.676541;
 
 // disable auth to run
 export default () => {
-  const address_req ={
+  const address_req = {
     lat: rand(minlat, maxlat),
     lon: rand(minlon, maxlon),
   };
