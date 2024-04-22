@@ -89,7 +89,7 @@ pub async fn search_in_bbox(
     );
     let (lat, lon) = (lat.to_degrees(), lon.to_degrees());
     // location bias is [0.0,1.0], lower is more weight on distance
-    let url = format!("?q={search_term}&bbox={min_lon},{min_lat},{max_lon},{max_lat}&lat={lat}&lon={lon}&location_bias_scale=0.0"); // photon
+    let url = format!("/api?q={search_term}&bbox={min_lon},{min_lat},{max_lon},{max_lat}&lat={lat}&lon={lon}&location_bias_scale=0.0"); // photon
 
     let builder = match client.get(&url).await {
         Ok(builder) => builder,
@@ -126,7 +126,7 @@ pub async fn search_anywhere(
     search_term: &str,
 ) -> Result<Vec<AnywhereObject>, String> {
     //let url = format!("search?q={search_term}&format=jsonv2");
-    let url = format!("?q={search_term}"); // photon
+    let url = format!("/api?q={search_term}&limit=50"); // photon
 
     let builder = match client.get(&url).await {
         Ok(builder) => builder,

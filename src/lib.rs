@@ -23,7 +23,7 @@ pub struct ServerConfig {
     pub domain: &'static str,
     pub relay_ip: [u8; 4],
     pub relay_port: u16,
-    pub search_url: &'static str,
+    pub photon_url: &'static str,
     pub address_url: &'static str,
     pub tile_url: &'static str,
     pub turn_url: &'static str,
@@ -44,7 +44,7 @@ pub static CONFIG: Lazy<ServerConfig> = Lazy::new(|| {
         relay_ip: config.get("relay_ip").unwrap(),
         relay_port: config.get("relay_port").unwrap(),
         // db_url: config.get_string("db_url").unwrap().leak(),
-        search_url: config.get_string("search_url").unwrap().leak(),
+        photon_url: config.get_string("photon_url").unwrap().leak(),
         address_url: config.get_string("address_url").unwrap().leak(),
         tile_url: config.get_string("tile_url").unwrap().leak(),
         turn_url: config.get_string("turn_url").unwrap().leak(),
@@ -118,10 +118,11 @@ pub fn init_logging() {
         .with_writer(log_appender)
         .with_writer(std::io::stderr)
         .event_format(log_format)
-        //.with_filter(LevelFilter::DEBUG)
+        .with_filter(LevelFilter::DEBUG)
         //.with_filter(LevelFilter::INFO)
-        .with_filter(LevelFilter::ERROR);
-    //.with_filter(tracing_subscriber::filter::LevelFilter::ERROR);
+        //.with_filter(LevelFilter::ERROR);
+    //.with_filter(tracing_subscriber::filter::LevelFilter::ERROR)
+        ;
     let registry = tracing_subscriber::registry().with(local_log);
     tracing::subscriber::set_global_default(registry).expect("Failed to enable logs");
 }

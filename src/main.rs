@@ -21,7 +21,7 @@ use server::{http_client::HttpClient, status_response::StatusResponse};
 pub struct ServerState {
     user_store: &'static RwLock<user_controller::UserStore>,
     // no need for Arc as reqwest::Client already implements it
-    search_client: HttpClient,
+    photon_client: HttpClient,
     address_client: HttpClient,
     tile_client: HttpClient,
     turn_client: HttpClient,
@@ -31,14 +31,14 @@ pub struct ServerState {
 impl ServerState {
     pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
         let user_store = user_controller::UserStore::default();
-        let search_client = HttpClient::new(CONFIG.search_url)?;
+        let photon_client = HttpClient::new(CONFIG.photon_url)?;
         let address_client = HttpClient::new(CONFIG.address_url)?;
         let tile_client = HttpClient::new(CONFIG.tile_url)?;
         let turn_client = HttpClient::new(CONFIG.turn_url)?;
         let routing_client = HttpClient::new(CONFIG.routing_url)?;
         Ok(Self {
             user_store: Box::leak(Box::new(RwLock::new(user_store))),
-            search_client,
+            photon_client,
             address_client,
             tile_client,
             turn_client,
@@ -58,22 +58,14 @@ async fn main() {
 
     let ServerState {
         user_store,
-        search_client,
+        photon_client,
         address_client,
         tile_client,
         turn_client,
         routing_client,
     } = ServerState::new().await.expect("Something went wrong");
 
-    let mut restricted_app = Router::new()
-        .nest(
-            "/api",
-            address_router::new_router().with_state(address_client.clone()),
-        )
-        .nest(
-            "/api",
-            route_router::new_router().with_state(routing_client.clone()),
-        );
+    let mut restricted_app = Router::new();
     if !cfg!(feature = "disable_auth") {
         restricted_app = restricted_app.layer(axum::middleware::from_fn(login_gateway));
     }
@@ -86,7 +78,7 @@ async fn main() {
         .nest("/api", user_router::new_router().with_state(user_store))
         .nest(
             "/api",
-            search_router::new_router().with_state(search_client.clone()),
+            search_router::new_router().with_state(photon_client.clone()),
         )
         .nest(
             "/",
@@ -95,6 +87,14 @@ async fn main() {
         .nest(
             "/",
             turn_router::new_router().with_state(turn_client.clone()),
+        )
+        .nest(
+            "/api",
+            address_router::new_router().with_state(photon_client.clone()),
+        )
+        .nest(
+            "/api",
+            route_router::new_router().with_state(routing_client.clone()),
         )
         .layer(session_layer);
     //.layer(axum::middleware::from_fn(append_headers));
