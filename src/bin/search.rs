@@ -17,13 +17,13 @@ use server::{init_logging, print_request_response};
 #[tokio::main]
 async fn main() {
     init_logging();
-    let search_client = HttpClient::new(CONFIG.search_url).unwrap();
-    let address_client = HttpClient::new(CONFIG.search_url).unwrap();
+    let photon_client = HttpClient::new(CONFIG.photon_url).unwrap();
+    let address_client = HttpClient::new(CONFIG.address_url).unwrap();
 
     let mut search_app = Router::new()
         .nest(
             "/api",
-            search_router::new_router().with_state(search_client.clone()),
+            search_router::new_router().with_state(photon_client.clone()),
         )
         .nest(
             "/api",
