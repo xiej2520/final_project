@@ -16,7 +16,7 @@ use tower_sessions::{cookie::time::Duration, Expiry, MemoryStore, Session, Sessi
 use server::routers::*;
 use server::CONFIG;
 use server::{controllers::*, init_logging, print_request_response};
-use server::{http_client::HttpClient, status_response::StatusResponse};
+use server::{http_client::HttpClient, StatusResponse};
 
 pub struct ServerState {
     user_store: &'static RwLock<user_controller::UserStore>,
@@ -30,14 +30,14 @@ pub struct ServerState {
 
 impl ServerState {
     pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
-        let user_store = user_controller::UserStore::default();
+        let user_store = Box::leak(Box::new(RwLock::new(user_controller::UserStore::default())));
         let photon_client = HttpClient::new(CONFIG.photon_url)?;
         let nominatim_client = HttpClient::new(CONFIG.nominatim_url)?;
         let tile_client = HttpClient::new(CONFIG.tile_url)?;
         let turn_client = HttpClient::new(CONFIG.turn_url)?;
         let routing_client = HttpClient::new(CONFIG.routing_url)?;
         Ok(Self {
-            user_store: Box::leak(Box::new(RwLock::new(user_store))),
+            user_store,
             photon_client,
             nominatim_client,
             tile_client,
@@ -63,7 +63,12 @@ async fn main() {
         tile_client,
         turn_client,
         routing_client,
-    } = ServerState::new().await.expect("Something went wrong");
+    } = ServerState::new()
+        .await
+        .map_err(|e| {
+            tracing::error!("{e}");
+        })
+        .unwrap();
 
     let mut restricted_app = Router::new();
     if !cfg!(feature = "disable_auth") {
@@ -90,14 +95,16 @@ async fn main() {
         )
         .nest(
             "/api",
-            address_router::new_router().with_state((photon_client.clone(), nominatim_client.clone())),
+            address_router::new_router()
+                .with_state((photon_client.clone(), nominatim_client.clone())),
         )
         .nest(
             "/api",
             route_router::new_router().with_state(routing_client.clone()),
         )
-        .layer(session_layer);
-    //.layer(axum::middleware::from_fn(append_headers));
+        .layer(session_layer)
+        //.layer(axum::middleware::from_fn(append_headers))
+        ;
     if !cfg!(feature = "disable_logs") {
         gateway = gateway.layer(
             ServiceBuilder::new()
@@ -109,7 +116,7 @@ async fn main() {
     let addr = SocketAddr::from((CONFIG.ip, CONFIG.http_port));
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
 
-    tracing::debug!("Server listening on {}", addr);
+    tracing::info!("Server listening on {}", addr);
     axum::serve(listener, gateway).await.unwrap();
 }
 

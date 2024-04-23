@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 use tower_sessions::Session;
 
-use crate::status_response::StatusResponse;
+use crate::StatusResponse;
 use crate::{controllers::user_controller::*, CONFIG};
 
 #[derive(Debug, Clone, Deserialize)]

@@ -2,7 +2,6 @@ pub mod controllers;
 pub mod http_client;
 pub mod parse_form;
 pub mod routers;
-pub mod status_response;
 
 use axum::{
     body::{Body, Bytes},
@@ -14,6 +13,7 @@ use chrono::Local;
 use config::Config;
 use http_body_util::BodyExt;
 use once_cell::sync::Lazy;
+use serde::Serialize;
 use tracing_subscriber::{filter::LevelFilter, layer::SubscriberExt, Layer};
 
 #[derive(Debug)]
@@ -43,7 +43,6 @@ pub static CONFIG: Lazy<ServerConfig> = Lazy::new(|| {
         domain: config.get_string("domain").unwrap().leak(),
         relay_ip: config.get("relay_ip").unwrap(),
         relay_port: config.get("relay_port").unwrap(),
-        // db_url: config.get_string("db_url").unwrap().leak(),
         photon_url: config.get_string("photon_url").unwrap().leak(),
         nominatim_url: config.get_string("nominatim_url").unwrap().leak(),
         tile_url: config.get_string("tile_url").unwrap().leak(),
@@ -125,4 +124,25 @@ pub fn init_logging() {
         ;
     let registry = tracing_subscriber::registry().with(local_log);
     tracing::subscriber::set_global_default(registry).expect("Failed to enable logs");
+}
+
+#[derive(Serialize)]
+pub struct StatusResponse {
+    pub message: String,
+    pub status: &'static str,
+}
+
+impl StatusResponse {
+    pub fn new_ok(message: String) -> Self {
+        Self {
+            status: "ok",
+            message,
+        }
+    }
+    pub fn new_err(message: String) -> Self {
+        Self {
+            status: "error",
+            message,
+        }
+    }
 }

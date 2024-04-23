@@ -131,9 +131,11 @@ pub async fn get_address(
         e.to_string()
     })?;
 
-    let resp = serde_json::from_str::<PhotonRevResponse>(
-        dbg!(response.text().await.map_err(|e| e.to_string())?.as_str()),
-    )
+    let resp = serde_json::from_str::<PhotonRevResponse>(dbg!(response
+        .text()
+        .await
+        .map_err(|e| e.to_string())?
+        .as_str()))
     .map_err(|e| e.to_string())?;
 
     tracing::info!("{resp:?}");
@@ -151,9 +153,11 @@ pub async fn get_address(
             e.to_string()
         })?;
 
-        let resp = serde_json::from_str::<NomRevResponse>(
-            dbg!(response.text().await.map_err(|e| e.to_string())?.as_str()),
-        )
+        let resp = serde_json::from_str::<NomRevResponse>(dbg!(response
+            .text()
+            .await
+            .map_err(|e| e.to_string())?
+            .as_str()))
         .map_err(|e| e.to_string())?;
         osmid = resp.osm_id;
     }
