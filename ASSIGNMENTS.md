@@ -181,3 +181,6 @@ Response (JSON): The address of the building at the requested location
   "state": string,
   "country": string,
 }
+
+Target: 1600 requests per second, 95% responding in under 50ms.
+(Tiles only, we passed with 178ms 95% @ 1601RPS)

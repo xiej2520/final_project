@@ -24,6 +24,7 @@ mkdir /data
 #tar -xvf data-us-northeast.tar.gz -C /
 tar --zstd -xvf data-us-northeast.tar.zst -C /
 
+###### PARTS ######
 ### OSRM in /data
 sudo tar -I zstd -cvpf data-us-northeast-osrm.tar.zst /data/osrm
 # extract
