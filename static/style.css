@@ -1,0 +1,208 @@
+body {
+  color: white;
+  background-color: #222;
+}
+.app {
+  display: flex;
+}
+.tabs {
+  width: 20%;
+  min-width: 400px;
+  min-height: 100vh;
+  background-color: #333;
+  border-right: 1px solid #ccc;
+}
+.tab {
+  padding: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  border-bottom: 1px solid rgba(256, 64, 256, 0.5);
+  border-bottom: 1px solid rgba(256, 64, 256, 0.5);
+}
+.tab:hover {
+  background-color: #444;
+}
+
+.content {
+  width: 75%;
+  flex: 1;
+}
+
+.hidden {
+  display: none;
+}
+
+h2 {
+  margin: 4px;
+  padding: 4px;
+}
+
+form {
+  border: 2px solid rgba(192, 64, 192, 1);
+}
+
+.input-grid {
+  display: grid;
+  grid-template-columns: max-content auto;
+  grid-gap: 0;
+}
+label {
+  font-weight: bold;
+  text-align: left;
+
+  padding: 2px;
+  padding-right: 10px;
+  font-weight: bold;
+  text-align: left;
+}
+input[type=text], input[type=password], input[type=email], input[type=search],
+    input[type=number] {
+  border: none;
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+
+  line-height: 1.5em;
+}
+
+button {
+  width: 100%;
+  background-color: #1e1731;
+  color: white;
+  border: none;
+  font-size: 16pt;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+button:hover {
+  background-color: #b8b;
+  transition: 0.5s;
+}
+.buttons {
+  display: flex;
+  justify-content: space-between;
+}
+
+#user-responses {
+  width: 100%;
+  border-collapse: collapse;
+}
+#user-responses tr {
+  border-bottom: 1px solid #eee;
+}
+#user-responses tr:nth-child(even) td {
+  background-color: #555;
+}
+#user-responses tr:hover td {
+  background-color: #eaf;
+  color: black;
+  transition: 0.5s;
+}
+#user-responses td {
+  padding: 4px;
+}
+
+#search-form label {
+  width: 20%;
+  min-width: auto;
+}
+
+#search-map {
+  background-color: #eeffee;
+  display: flex;
+  height: 100vh;
+  color: black;
+}
+
+#search-map table {
+  font-family: Arial, Helvetica, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+}
+#search-map td {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+#search-map tr:nth-child(even) { background-color: #f2f2f2; }
+#search-map tr:hover { background-color: #ddd; }
+
+/* leaftlet needs absolute height, set 100vh on container and 100% on map element */
+/* need to call map.invalidateSize(true) if the map is initially hidden! */
+#map {
+  width: 75%;
+  height: 100%;
+  padding: 0;
+}
+
+.search-results {
+  width: 25%;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  padding: 10px;
+}
+
+.result-item {
+  cursor: pointer;
+  padding: 5px;
+  border-bottom: 1px solid #eee;
+}
+
+.result-item:hover {
+  background-color: #5a7;
+}
+#manual-bbox-label {
+  background-color: #eeccee;
+  height: 20px;
+  margin: 0;
+  padding: 4px;
+  padding-right: 8px;
+  display: inline-block;
+  font-weight: bold;
+  cursor: pointer;
+}
+#manual-bbox-label:hover {
+  background-color: #ffaaff;
+  transition-duration: 0.4s;
+}
+#manual-bbox-panel {
+  display: none;
+  overflow: hidden;
+}
+
+.stat-table {
+  position: fixed;
+  right: 2%;
+  background-color: rgba(0, 0, 0, 0.1);
+}
+.stat-table * {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.samples {
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+
+  height: 50px;
+  background-color: #333;
+  padding: 0;
+  margin: 0;
+}
+.samples div {
+  display: inline-block;
+  width: 50px;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-size: 10pt;
+  background-color: #444;
+  cursor: pointer;
+  text-align: center;
+}
+.samples div:hover {
+  background-color: #7affd3;
+  transition: 0.5s;
+}
+
+#convert-form {
+  max-width: 500px;
+}

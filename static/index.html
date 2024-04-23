@@ -2,114 +2,174 @@
 <html>
 
 <head>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <style>
-table {
-  font-family: Arial, Helvetica, sans-serif;
-  border-collapse: collapse;
-  width: 100%;
-}
-td {
-  border: 1px solid #ddd;
-  padding: 8px;
-}
-tr:nth-child(even) { background-color: #f2f2f2; }
-tr:hover { background-color: #ddd; }
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-#search-map {
-  background-color: #eeffee;
-  display: flex;
-  height: 800px;
-}
-
-.search-results {
-  width: 25%;
-  overflow-y: auto;
-  border: 1px solid #ccc;
-  padding: 10px;
-}
-
-.result-item {
-  cursor: pointer;
-  padding: 5px;
-  border-bottom: 1px solid #eee;
-}
-
-.result-item:hover {
-  background-color: #f5f5f5;
-}
-
-html, body {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-}
-#map {
-  width: 75%;
-  height: 800px;
-  padding: 0;
-}
-#manual-bbox {
-  background-color: #eeccee;
-  padding: 4px;
-  height: 20px;
-}
-#manual-bbox-label {
-  margin: 0;
-  padding-right: 8px;
-  display: inline-block;
-  font-weight: bold;
-  border-right: 2px solid #333;
-  cursor: pointer;
-}
-#manual-bbox-label:hover {
-  background-color: #ffaaff;
-  transition-duration: 0.4s;
-}
-#manual-bbox-panel {
-  display: none;
-  overflow: hidden;
-}
-  </style>
+<link rel="stylesheet" href="/normalize.css"/>
+<link rel="stylesheet" href="/style.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 </head>
-
 <body>
-  <form id="adduser-form" action="/api/adduser" method="POST">
-    <input type="text" id="username" name="username" value="username" required>
-    <input type="password" id="password" name="password" value="password" required>
-    <input type="email" id="email" name="email" value="username@password.com" required>
-    <input type="submit" value="Add User">
-  </form>
-  <form id="login-form" action="/api/login" method="POST">
-    <input type="text" id="login-username" name="username" value="username" required>
-    <input type="password" id="login-password" name="password" value="password" required>
-    <input type="submit" value="Login">
-  </form>
-  <form id="logout-form" action="/api/logout" method="POST">
-    <input type="submit" value="Logout">
-  </form>
 
-  <form id="search-form" action="/api/search" method="POST">
-    <div id="manual-bbox">
-      <span id="manual-bbox-label"  onclick="toggleBBoxPanel()">Map View BBox</span>
-      <div id="manual-bbox-panel">
-        <label for="search-minlat">minLat</label>
-        <input type="number" id="search-minlat" name="minLat" min="-90" max="90" step="0.00000000000000001" value="40.908925">
-        <label for="search-maxlat">maxLat</label>
-        <input type="number" id="search-maxlat" name="maxLat" min="-90" max="90" step="0.00000000000000001" value="40.927442">
-        <label for="search-minlon">minLon</label>
-        <input type="number" id="search-minlon" name="minLon" min="-180" max="180" step="0.00000000000000001" value="-73.135909">
-        <label for="search-maxlon">maxLon</label>
-        <input type="number" id="search-maxlon" name="maxLon" min="-180" max="180" step="0.00000000000000001" value="-73.109216">
+<div class="app">
+  <div class="tabs">
+    <div class="tab" onclick="showContent('content-user')">
+      <h2>User Management</h2>
+      <form id="adduser-form" action="/api/adduser" method="POST">
+        <div class="input-grid">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" value="username" required>
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" value="password" required>
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" value="username@password.com" required>
+        </div>
+        <button type="submit" value="add_user">Add User</button>
+      </form>
+      <br/>
+      <form id="login-form" action="/api/login" method="POST">
+        <div class="input-grid">
+          <label for="login-username">Username</label>
+          <input type="text" id="login-username" name="username" value="username" required>
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" name="password" value="password" required>
+        </div>
+        <button type="submit" value="login">Login</button>
+      </form>
+      <form id="logout-form" action="/api/logout" method="POST">
+        <button type="submit" value="logout">Logout</button>
+      </form>
+    </div>
+    <div class="tab" onclick="showContent('content-map')">
+      <h2>Map</h2>
+      <form id="search-form" action="/api/search" method="POST">
+        <div id="manual-bbox">
+          <span id="manual-bbox-label" onclick="toggleBBoxPanel()">Map View BBox</span>
+          <div id="manual-bbox-panel" class="input-grid">
+            <label for="search-minlat">minLat</label>
+            <input type="number" id="search-minlat" name="minLat" min="-90" max="90" step="0.00000000000000001" value="40.908925">
+            <label for="search-maxlat">maxLat</label>
+            <input type="number" id="search-maxlat" name="maxLat" min="-90" max="90" step="0.00000000000000001" value="40.927442">
+            <label for="search-minlon">minLon</label>
+            <input type="number" id="search-minlon" name="minLon" min="-180" max="180" step="0.00000000000000001" value="-73.135909">
+            <label for="search-maxlon">maxLon</label>
+            <input type="number" id="search-maxlon" name="maxLon" min="-180" max="180" step="0.00000000000000001" value="-73.109216">
+          </div>
+        </div>
+        <label for="onlyInBox">onlyInBox</label>
+        <input type="checkbox" id="onlyInBox" name="onlyInBox">
+        <input type="search" id="searchTerm" name="searchTerm" value="Stony Brook University" required>
+        <button type="submit" value="search">Search</button>
+      </form>
+    </div>
+    <div class="tab" onclick="showContent('content-load-test')">
+      <h2>Load Test</h2>
+      <form id="load-convert-form">
+        <div class="input-grid">
+          <label for="load-convert-minlat">Min Latitude:</label>
+          <input type="number" id="load-convert-minlat" name="minlat" min="-90" max="90" step="0.00000000000000001" value="39">
+          <label for="load-convert-maxlat">Max Latitude:</label>
+          <input type="number" id="load-convert-maxlat" name="maxlat" min="-90" max="90" step="0.00000000000000001" value="47">
+          <label for="load-convert-minlon">Min Longitude:</label>
+          <input type="number" id="load-convert-minlon" name="minlon" min="-180" max="180" step="0.00000000000000001" value="-80">
+          <label for="load-convert-maxlon">Max Longitude:</label>
+          <input type="number" id="load-convert-maxlon" name="maxlon" min="-180" max="180" step="0.00000000000000001" value="-64">
+          <label for="load-convert-minzoom">Min Zoom:</label>
+          <input type="number" id="load-convert-minzoom" name="minzoom" min="0" max="22" value="7">
+          <label for="load-convert-maxzoom">Max Zoom:</label>
+          <input type="number" id="load-convert-maxzoom" name="maxzoom" min="0" max="22" value="22">
+        </div>
+        <div class="buttons">
+          <button type="submit" value="test-convert-seq">Test Convert Sequential</button>
+          <button type="submit" value="test-convert-par">Test Convert Parallel</button>
+          <button type="submit" value="test-tiles">Test Tiles Sequential</button>
+        </div>
+      </form>
+    </div>
+    <div class="tab" onclick="showContent('content-api')">
+      <h2>API</h2>
+    </div>
+  </div>
+  <div class="content">
+    <div class="content-item hidden" id="content-user">
+      <table id="user-responses"></table>
+    </div>
+
+    <div class="content-item" id="content-map">
+      <div id="search-map">
+        <div class="search-results">
+          <ul id="results-list"></ul>
+        </div> 
+        <div id="map"></div>
       </div>
     </div>
-    <label for="onlyInBox">onlyInBox</label>
-    <input type="checkbox" id="onlyInBox" name="onlyInBox">
-    <input type="searchTerm" id="searchTerm" name="searchTerm" value="Stony Brook University" required>
-    <input type="submit" value="Search">
-  </form>
+
+    <div class="content-item hidden" id="content-load-test">
+      <div id="load-convert-samples" class="samples"></div>
+      <div>Pending requests: <span id="requestsRemaining">0</span></div>
+      <table id="load-convert-table" class="stat-table">
+        <tr> <th>Statistic</th> <th>Value</th> </tr>
+        <tr> <td>N</td> <td></td> </tr>
+        <tr> <td>Min</td> <td></td> </tr>
+        <tr> <td>Max</td> <td></td> </tr>
+        <tr> <td>Average</td> <td></td> </tr>
+        <tr> <td>Median</td> <td></td> </tr>
+        <tr> <td>90th Percentile</td> <td></td> </tr>
+        <tr> <td>95th Percentile</td> <td></td> </tr>
+        <tr> <td>99th Percentile</td> <td></td> </tr>
+        <tr> <td>Total</td> <td></td> </tr>
+      </table>
+      <canvas id="load-convert-chart" width="1000" height="600"></canvas>
+    </div>
+    <div class="content-item hidden" id="content-api">
+      <table>
+        <caption>
+          Turn
+        </caption>
+        <tbody>
+          <tr>
+            <td>Top Half</td>
+            <td><img src="/turn/40.916889,-73.117577/40.916602,-73.116295.png"></img></td>
+          </tr>
+          <tr>
+            <td>Left Half</td>
+            <td><img src="/turn/40.916889,-73.117577/40.915912,-73.11689.png"></img></td>
+          </tr>
+          <tr>
+            <td>Full Box</td>
+            <td><img src="/turn/40.916889,-73.117577/40.915921,-73.116263.png"></img></td>
+          </tr>
+        </tbody>
+      </table>
+
+        <form id="convert-form" action="/convert" method="POST">
+          <div class="input-grid">
+            <label for="convert-lat">Latitude</label>
+            <input type="number" id="lat" name="lat" min="-90" max="90" step="0.00000000000000001" value="40.74">
+            <label for="convert-long">Longitude</label>
+            <input type="number" id="long" name="long" min="-180" max="180" step="0.00000000000000001" value="-73.98">
+            <label for="convert-zoom">Zoom</label>
+            <input type="number" id="zoom" name="zoom" min="1" max="22" value="9">
+          </div>
+          <input type="submit" value="Convert">
+          <button type="button" id="resetConvertButton">Reset</button>
+          <table>
+            <tbody id="convert-responses"></tbody>
+          </table>
+        </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function showContent(tabId) {
+  const contentItems = document.getElementsByClassName("content-item");
+  for (var i = 0; i < contentItems.length; i++) {
+    contentItems[i].classList.add("hidden");
+  }
+  document.getElementById(tabId).classList.remove("hidden");
+}
+</script>
 
 <script>
 let bboxPanelOn = false;
@@ -121,51 +181,13 @@ function toggleBBoxPanel() {
     label.innerHTML = "Map View BBox";
     bboxPanelOn = false;
   } else {
-    panel.style.display = "inline";
+    panel.style.display = "grid";
     label.innerHTML = "Manual BBox";
     bboxPanelOn = true;
   }
 }
 </script>
 
-  <div id="search-map">
-    <div class="search-results">
-      <ul id="results-list"></ul>
-    </div> 
-    <div id="map"></div>
-  </div>
-
-  <script>
-    var map = L.map('map').setView([0, 0], 3);
-
-    L.tileLayer('/tiles/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>',
-      id: 'base'
-    }).addTo(map);
-    var markerGroup = L.layerGroup().addTo(map);
-
-    function onMapClick(e) {
-      var popup = L.popup();
-      console.log(e.latlng);
-      popup
-          .setLatLng(e.latlng)
-          .setContent("You clicked the map at " + e.latlng.toString())
-          .openOn(map);
-    }
-
-    map.on('click', onMapClick);
-  </script>
-
-  <form id="convert-form" action="/convert" method="POST">
-    <input type="number" id="lat" name="lat" min="-90" max="90" step="0.00000000000000001" value="40.74">
-    <input type="number" id="long" name="long" min="-180" max="180" step="0.00000000000000001" value="-73.98">
-    <input type="number" id="zoom" name="zoom" min="1" max="18" value="9">
-    <input type="submit" value="Convert">
-  </form>
-  <table>
-    <tbody id="responses"></tbody>
-  </table>
 <script>
 function add_hook(id) {
   const form = document.getElementById(id);
@@ -178,17 +200,22 @@ function add_hook(id) {
       body: JSON.stringify(Object.fromEntries(formData))
     }).then(async response => {
       const json = await response.json();
-      let t = JSON.stringify(json);
-      let row = `<tr><td>${t}</td>`;
+      const t = JSON.stringify(json);
+      const row = document.getElementById("user-responses").insertRow();
+      const labelCell = row.insertCell();
+      labelCell.innerHTML = id;
+      const responseCell = row.insertCell();
+      responseCell.innerHTML = t;
 
       if (json.message.includes("url=")) {
-        row += `<td><a target="_blank" href=${json.message.split("url=")[1]}>Verify</a>
-          </td>`;
+        const verifyCell = row.insertCell();
+        const url = new URL(json.message.split("url=")[1]);
+        const strippedUrl = url.pathname + url.search + url.hash; // remove domain
+        verifyCell.innerHTML = `<a target="_blank" href=${strippedUrl}>Verify</a>`;
       }
-      row += `</tr>`;
-      document.getElementById("responses").innerHTML += row;
-    }).catch(error => {
-      document.getElementById("responses").innerHTML +=
+    })
+    .catch(error => {
+      document.getElementById("user-responses-body").innerHTML +=
         `<tr><td>${JSON.stringify(error)}</td></tr>`
     })
   };
@@ -198,7 +225,31 @@ add_hook("login-form");
 add_hook("logout-form");
 </script>
 
-  <script>
+
+<script>
+let map = L.map('map')//.setView([0, 0], 3);
+map.setView(new L.LatLng(40.768094, -73.981941), 8);
+
+L.tileLayer('/tiles/{z}/{x}/{y}.png', {
+  maxZoom: 18,
+  attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>',
+  id: 'base'
+}).addTo(map);
+let markerGroup = L.layerGroup().addTo(map);
+
+function onMapClick(e) {
+  let popup = L.popup();
+  console.log(e.latlng);
+  popup
+      .setLatLng(e.latlng)
+      .setContent("You clicked the map at " + e.latlng.toString())
+      .openOn(map);
+}
+
+map.on('click', onMapClick);
+</script>
+
+<script>
 function renderResults(results) {
   let resultList = document.getElementById("results-list");
   resultList.innerHTML = ''; // Clear previous results
@@ -253,7 +304,7 @@ form.onsubmit = (event) => {
     console.log("JSON is", json);
     let t = JSON.stringify(json);
     let row = `<tr><td>${t}</td></tr>`;
-    document.getElementById("responses").innerHTML += row;
+    document.getElementById("user-responses").innerHTML += row;
 
     renderResults(json);
     markerGroup.clearLayers();
@@ -277,46 +328,15 @@ form.onsubmit = (event) => {
   )
   .catch(error => {
     console.log(error);
-    document.getElementById("responses").innerHTML +=
+    document.getElementById("user-responses").innerHTML +=
       `<tr><td>ERROR: ${JSON.stringify(error)}</td></tr>`
   })
 };
 })();
-  </script>
+</script>
 
-  <script>
-(() => {
-const form = document.getElementById("convert-form");
-form.onsubmit = (event) => {
-  event.preventDefault();
-  const formData = new FormData(form);
-  let data = Object.fromEntries(formData);
-  data.lat = Number(data.lat);
-  data.long = Number(data.long);
-  data.zoom = Number(data.zoom);
-  console.log(data);
-  fetch(form.action, {
-    method: 'POST',
-    headers: new Headers({ 'content-type': 'application/json' }),
-    body: JSON.stringify(data)
-  })
-  .then(async response => {
-    const json = await response.json();
-    console.log(json);
-    let t = JSON.stringify(json);
-    let row = `<tr><td>${t}<br/>zoom=${data.zoom}</td><td><img src="/tiles/${data.zoom}/${json.x_tile}/${json.y_tile}.png" width="256" height="256"/></td></tr>`;
-    document.getElementById("responses").innerHTML += row;
-  }
-  )
-  .catch(error => {
-    console.log(error);
-    document.getElementById("responses").innerHTML +=
-      `<tr><td>ERROR: ${JSON.stringify(error)}</td></tr>`
-  })
-};
-})();
-  </script>
+<script src="/benchmark.js"></script>
+<script src="/convert-handler.js"></script>
 
 </body>
-
 </html>
