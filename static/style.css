@@ -101,16 +101,25 @@ button:hover {
   padding: 4px;
 }
 
-#search-form label {
-  width: 20%;
-  min-width: auto;
-}
-
 #search-map {
-  background-color: #eeffee;
+  background-color: #aaffaa;
   display: flex;
   height: 100vh;
   color: black;
+}
+
+#search {
+  margin: 0;
+}
+
+#search-form {
+  background-color: #333;
+  color: white;
+}
+#results-list {
+  margin: 0;
+  padding: 0;
+  list-style-type: none; 
 }
 
 #search-map table {
@@ -125,29 +134,13 @@ button:hover {
 #search-map tr:nth-child(even) { background-color: #f2f2f2; }
 #search-map tr:hover { background-color: #ddd; }
 
-/* leaftlet needs absolute height, set 100vh on container and 100% on map element */
-/* need to call map.invalidateSize(true) if the map is initially hidden! */
-#map {
-  width: 75%;
-  height: 100%;
-  padding: 0;
-}
-
-.search-results {
-  width: 25%;
-  overflow-y: auto;
-  border: 1px solid #ccc;
-  padding: 10px;
-}
-
 .result-item {
   cursor: pointer;
   padding: 5px;
   border-bottom: 1px solid #eee;
 }
-
 .result-item:hover {
-  background-color: #5a7;
+  background-color: #7a7;
 }
 #manual-bbox-label {
   background-color: #eeccee;
@@ -166,6 +159,14 @@ button:hover {
 #manual-bbox-panel {
   display: none;
   overflow: hidden;
+}
+
+/* leaftlet needs absolute height, set 100vh on container and 100% on map element */
+/* need to call map.invalidateSize(true) if the map is initially hidden! */
+#map {
+  width: 80%;
+  height: 100%;
+  padding: 0;
 }
 
 .stat-table {

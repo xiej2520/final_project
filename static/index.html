@@ -2,6 +2,7 @@
 <html>
 
 <head>
+<title>Not Invented Here</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <link rel="stylesheet" href="/normalize.css"/>
@@ -42,25 +43,6 @@
     </div>
     <div class="tab" onclick="showContent('content-map')">
       <h2>Map</h2>
-      <form id="search-form" action="/api/search" method="POST">
-        <div id="manual-bbox">
-          <span id="manual-bbox-label" onclick="toggleBBoxPanel()">Map View BBox</span>
-          <div id="manual-bbox-panel" class="input-grid">
-            <label for="search-minlat">minLat</label>
-            <input type="number" id="search-minlat" name="minLat" min="-90" max="90" step="0.00000000000000001" value="40.908925">
-            <label for="search-maxlat">maxLat</label>
-            <input type="number" id="search-maxlat" name="maxLat" min="-90" max="90" step="0.00000000000000001" value="40.927442">
-            <label for="search-minlon">minLon</label>
-            <input type="number" id="search-minlon" name="minLon" min="-180" max="180" step="0.00000000000000001" value="-73.135909">
-            <label for="search-maxlon">maxLon</label>
-            <input type="number" id="search-maxlon" name="maxLon" min="-180" max="180" step="0.00000000000000001" value="-73.109216">
-          </div>
-        </div>
-        <label for="onlyInBox">onlyInBox</label>
-        <input type="checkbox" id="onlyInBox" name="onlyInBox">
-        <input type="search" id="searchTerm" name="searchTerm" value="Stony Brook University" required>
-        <button type="submit" value="search">Search</button>
-      </form>
     </div>
     <div class="tab" onclick="showContent('content-load-test')">
       <h2>Load Test</h2>
@@ -97,7 +79,27 @@
 
     <div class="content-item" id="content-map">
       <div id="search-map">
-        <div class="search-results">
+        <div class="search">
+          <form id="search-form" action="/api/search" method="POST">
+            <div id="manual-bbox">
+              <span id="manual-bbox-label" onclick="toggleBBoxPanel()">Map View BBox</span>
+              <div id="manual-bbox-panel" class="input-grid">
+                <label for="search-minlat">minLat</label>
+                <input type="number" id="search-minlat" name="minLat" min="-90" max="90" step="0.00000000000000001" value="40.908925">
+                <label for="search-maxlat">maxLat</label>
+                <input type="number" id="search-maxlat" name="maxLat" min="-90" max="90" step="0.00000000000000001" value="40.927442">
+                <label for="search-minlon">minLon</label>
+                <input type="number" id="search-minlon" name="minLon" min="-180" max="180" step="0.00000000000000001" value="-73.135909">
+                <label for="search-maxlon">maxLon</label>
+                <input type="number" id="search-maxlon" name="maxLon" min="-180" max="180" step="0.00000000000000001" value="-73.109216">
+              </div>
+            </div>
+            <label for="onlyInBox">onlyInBox</label>
+            <input type="checkbox" id="onlyInBox" name="onlyInBox">
+            <input type="search" id="searchTerm" name="searchTerm" value="Stony Brook University" required>
+            <button type="submit" value="search">Search</button>
+          </form>
+  
           <ul id="results-list"></ul>
         </div> 
         <div id="map"></div>
@@ -129,26 +131,26 @@
         <tbody>
           <tr>
             <td>Top Half</td>
-            <td><img src="/turn/40.916889,-73.117577/40.916602,-73.116295.png"></img></td>
+            <td><img src="/turn/40.916889,-73.117577/40.916602,-73.116295.png" alt="top"/></td>
           </tr>
           <tr>
             <td>Left Half</td>
-            <td><img src="/turn/40.916889,-73.117577/40.915912,-73.11689.png"></img></td>
+            <td><img src="/turn/40.916889,-73.117577/40.915912,-73.11689.png" alt="left"/></td>
           </tr>
           <tr>
             <td>Full Box</td>
-            <td><img src="/turn/40.916889,-73.117577/40.915921,-73.116263.png"></img></td>
+            <td><img src="/turn/40.916889,-73.117577/40.915921,-73.116263.png" alt="full"/></td>
           </tr>
         </tbody>
       </table>
 
         <form id="convert-form" action="/convert" method="POST">
           <div class="input-grid">
-            <label for="convert-lat">Latitude</label>
+            <label for="lat">Latitude</label>
             <input type="number" id="lat" name="lat" min="-90" max="90" step="0.00000000000000001" value="40.74">
-            <label for="convert-long">Longitude</label>
+            <label for="long">Longitude</label>
             <input type="number" id="long" name="long" min="-180" max="180" step="0.00000000000000001" value="-73.98">
-            <label for="convert-zoom">Zoom</label>
+            <label for="zoom">Zoom</label>
             <input type="number" id="zoom" name="zoom" min="1" max="22" value="9">
           </div>
           <input type="submit" value="Convert">
