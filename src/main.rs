@@ -7,42 +7,52 @@ use axum::{
 };
 
 use tokio::sync::RwLock;
+use tokio_postgres::NoTls;
 use tower::ServiceBuilder;
 
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 use tower_sessions::{cookie::time::Duration, Expiry, MemoryStore, Session, SessionManagerLayer};
 
-use server::routers::*;
-use server::CONFIG;
-use server::{controllers::*, init_logging, print_request_response};
-use server::{http_client::HttpClient, StatusResponse};
+use server::{
+    config::CONFIG, controllers::*, http_client::HttpClient, logging::*, routers::*,
+    status_response::StatusResponse,
+};
 
 pub struct ServerState {
     user_store: &'static RwLock<user_controller::UserStore>,
+    db_client: &'static tokio_postgres::Client,
     // no need for Arc as reqwest::Client already implements it
-    photon_client: HttpClient,
-    nominatim_client: HttpClient,
     tile_client: HttpClient,
     turn_client: HttpClient,
-    routing_client: HttpClient,
+    route_client: HttpClient,
 }
 
 impl ServerState {
     pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
-        let user_store = Box::leak(Box::new(RwLock::new(user_controller::UserStore::default())));
-        let photon_client = HttpClient::new(CONFIG.photon_url)?;
-        let nominatim_client = HttpClient::new(CONFIG.nominatim_url)?;
+        let user_store = Box::leak(Box::new(RwLock::new(user_controller::UserStore::new(
+            CONFIG.domain,
+            CONFIG.relay_ip,
+            CONFIG.relay_port,
+        ))));
+        let (db_client, db_conn) = tokio_postgres::connect(CONFIG.db_url, NoTls)
+            .await
+            .expect("Failed to connect to postgresql server");
+        let db_client = Box::leak(Box::new(db_client));
+        tokio::spawn(async move {
+            if let Err(e) = db_conn.await {
+                eprintln!("Connection error: {}", e);
+            }
+        });
         let tile_client = HttpClient::new(CONFIG.tile_url)?;
         let turn_client = HttpClient::new(CONFIG.turn_url)?;
-        let routing_client = HttpClient::new(CONFIG.routing_url)?;
+        let route_client = HttpClient::new(CONFIG.route_url)?;
         Ok(Self {
             user_store,
-            photon_client,
-            nominatim_client,
+            db_client,
             tile_client,
             turn_client,
-            routing_client,
+            route_client,
         })
     }
 }
@@ -58,11 +68,10 @@ async fn main() {
 
     let ServerState {
         user_store,
-        photon_client,
-        nominatim_client,
+        db_client,
         tile_client,
         turn_client,
-        routing_client,
+        route_client,
     } = ServerState::new()
         .await
         .map_err(|e| {
@@ -70,43 +79,23 @@ async fn main() {
         })
         .unwrap();
 
-    let mut restricted_app = Router::new();
-    if !cfg!(feature = "disable_auth") {
-        restricted_app = restricted_app.layer(axum::middleware::from_fn(login_gateway));
-    }
-
-    let mut gateway = Router::new()
-        .nest_service("/", ServeDir::new("static"))
-        .nest("/auth", auth_router::new_router())
+    let restricted_app = Router::new()
+        .nest("/api", search_router::new_router().with_state(db_client))
+        .nest("/api", address_router::new_router().with_state(db_client))
+        .nest("/", tile_router::new_router().with_state(tile_client))
+        .nest("/", turn_router::new_router().with_state(turn_client))
         .nest("/", convert_router::new_router())
-        .nest("/", restricted_app)
+        .nest("/api", route_router::new_router().with_state(route_client))
+        .layer(axum::middleware::from_fn(login_gateway));
+
+    let mut app = Router::new()
+        .nest_service("/", ServeDir::new("static"))
         .nest("/api", user_router::new_router().with_state(user_store))
-        .nest(
-            "/api",
-            search_router::new_router().with_state(photon_client.clone()),
-        )
-        .nest(
-            "/",
-            tile_router::new_router().with_state(tile_client.clone()),
-        )
-        .nest(
-            "/",
-            turn_router::new_router().with_state(turn_client.clone()),
-        )
-        .nest(
-            "/api",
-            address_router::new_router()
-                .with_state((photon_client.clone(), nominatim_client.clone())),
-        )
-        .nest(
-            "/api",
-            route_router::new_router().with_state(routing_client.clone()),
-        )
-        .layer(session_layer)
-        //.layer(axum::middleware::from_fn(append_headers))
-        ;
+        .nest("/", restricted_app)
+        .layer(session_layer);
+
     if !cfg!(feature = "disable_logs") {
-        gateway = gateway.layer(
+        app = app.layer(
             ServiceBuilder::new()
                 .layer(TraceLayer::new_for_http())
                 .layer(axum::middleware::from_fn(print_request_response)),
@@ -117,10 +106,14 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
 
     tracing::info!("Server listening on {}", addr);
-    axum::serve(listener, gateway).await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
 
 async fn login_gateway(req: Request, next: Next) -> Response {
+    if cfg!(feature = "disable_auth") {
+        return next.run(req).await;
+    }
+
     match req.extensions().get::<Session>() {
         Some(session) => match session.get::<String>("username").await {
             Ok(Some(_)) => next.run(req).await,

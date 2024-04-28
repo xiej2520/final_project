@@ -9,7 +9,7 @@ use axum_macros::debug_handler;
 
 use crate::controllers::tile_controller::*;
 use crate::http_client::HttpClient;
-use crate::StatusResponse;
+use crate::status_response::StatusResponse;
 
 pub fn new_router() -> Router<HttpClient> {
     Router::new().route("/tiles/:layer/:v/:h", get(tile_handler))

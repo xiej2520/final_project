@@ -5,10 +5,12 @@ use axum::Router;
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 
-use server::http_client::HttpClient;
-use server::routers::route_router;
-use server::CONFIG;
-use server::{init_logging, print_request_response};
+use server::{
+    config::CONFIG,
+    http_client::HttpClient,
+    logging::{init_logging, print_request_response},
+    routers::route_router,
+};
 
 /// Runs a routing service
 /// Reverse proxy traffic here *after* verifyinng authentication, this doesn't
@@ -16,15 +18,14 @@ use server::{init_logging, print_request_response};
 #[tokio::main]
 async fn main() {
     init_logging();
-    let routing_client = HttpClient::new(CONFIG.routing_url).unwrap();
 
-    let mut routing_app = Router::new().nest(
-        "/api",
-        route_router::new_router().with_state(routing_client.clone()),
-    );
+    let route_client = HttpClient::new(CONFIG.route_url).unwrap();
+
+    let mut route_app =
+        Router::new().nest("/api", route_router::new_router().with_state(route_client));
 
     if !cfg!(feature = "disable_logs") {
-        routing_app = routing_app.layer(
+        route_app = route_app.layer(
             ServiceBuilder::new()
                 .layer(TraceLayer::new_for_http())
                 .layer(axum::middleware::from_fn(print_request_response)),
@@ -35,5 +36,5 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
 
     tracing::debug!("Server listening on {}", addr);
-    axum::serve(listener, routing_app).await.unwrap();
+    axum::serve(listener, route_app).await.unwrap();
 }

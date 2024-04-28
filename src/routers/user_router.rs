@@ -8,8 +8,8 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 use tower_sessions::Session;
 
-use crate::StatusResponse;
-use crate::{controllers::user_controller::*, CONFIG};
+use crate::controllers::user_controller::*;
+use crate::status_response::StatusResponse;
 
 #[derive(Debug, Clone, Deserialize)]
 struct AddUserBody {
@@ -56,10 +56,7 @@ async fn add_user_handler(
 ) -> Json<StatusResponse> {
     let user = User::new(&username, &password, &email);
     let mut store = store.write().await;
-    match store
-        .add_user(user, CONFIG.domain, CONFIG.relay_ip, CONFIG.relay_port)
-        .await
-    {
+    match store.add_user(user).await {
         Ok(link) => Json(StatusResponse::new_ok(format!(
             "User added, verification url={link}",
         ))),

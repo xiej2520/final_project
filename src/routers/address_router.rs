@@ -9,25 +9,25 @@ use axum_macros::debug_handler;
 use serde::Deserialize;
 
 use crate::controllers::address_controller::*;
-use crate::http_client::HttpClient;
-use crate::StatusResponse;
+use crate::status_response::StatusResponse; 
 
 #[derive(Debug, Deserialize)]
 pub struct AddressParams {
     lat: f64,
     lon: f64,
+    dist: Option<f64>,
 }
 
-pub fn new_router() -> Router<(HttpClient, HttpClient)> {
+pub fn new_router() -> Router<&'static tokio_postgres::Client> {
     Router::new().route("/address", post(address_handler))
 }
 
 #[debug_handler]
 async fn address_handler(
-    State((photon_client, nominatim_client)): State<(HttpClient, HttpClient)>,
-    Json(AddressParams { lat, lon }): Json<AddressParams>,
+    State(client): State<&'static tokio_postgres::Client>,
+    Json(AddressParams { lat, lon , dist }): Json<AddressParams>,
 ) -> Response {
-    match get_address(&photon_client, &nominatim_client, lat, lon).await {
+    match get_address(&client, lat, lon, dist).await {
         Ok(address) => Json(address).into_response(),
         Err(e) => {
             tracing::error!("{e}");

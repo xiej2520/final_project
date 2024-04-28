@@ -4,15 +4,16 @@ use axum::Router;
 
 use tokio::sync::RwLock;
 use tower::ServiceBuilder;
-
 use tower_http::trace::TraceLayer;
-
-use server::controllers::user_controller;
-use server::routers::{auth_router, user_router};
-use server::CONFIG;
-use server::{init_logging, print_request_response};
 use tower_sessions::cookie::time::Duration;
 use tower_sessions::{Expiry, MemoryStore, SessionManagerLayer};
+
+use server::{
+    config::CONFIG,
+    controllers::user_controller::UserStore,
+    logging::{init_logging, print_request_response},
+    routers::{auth_router, user_router},
+};
 
 /// Runs an user creation, login, and authentication service
 #[tokio::main]
@@ -24,7 +25,11 @@ async fn main() {
         .with_secure(false)
         .with_expiry(Expiry::OnInactivity(Duration::seconds(3600)));
 
-    let user_store = Box::leak(Box::new(RwLock::new(user_controller::UserStore::default())));
+    let user_store = Box::leak(Box::new(RwLock::new(UserStore::new(
+        CONFIG.domain,
+        CONFIG.relay_ip,
+        CONFIG.relay_port,
+    ))));
 
     let mut auth_app = Router::new()
         .nest("/auth", auth_router::new_router())

@@ -9,8 +9,7 @@ use axum_macros::debug_handler;
 use serde::Deserialize;
 
 use crate::controllers::search_controller::*;
-use crate::http_client::HttpClient;
-use crate::StatusResponse;
+use crate::status_response::StatusResponse;
 
 #[derive(Debug, Deserialize)]
 #[allow(non_snake_case)]
@@ -20,13 +19,13 @@ pub struct SearchParams {
     searchTerm: String,
 }
 
-pub fn new_router() -> Router<HttpClient> {
+pub fn new_router() -> Router<&'static tokio_postgres::Client> {
     Router::new().route("/search", post(search_handler))
 }
 
 #[debug_handler]
 pub async fn search_handler(
-    State(client): State<HttpClient>,
+    State(client): State<&'static tokio_postgres::Client>,
     Json(SearchParams {
         bbox,
         onlyInBox: only_in_box,

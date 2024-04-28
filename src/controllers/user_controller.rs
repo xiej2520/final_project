@@ -12,6 +12,9 @@ use reqwest::Url;
 
 #[derive(Debug, Default)]
 pub struct UserStore {
+    domain: &'static str,
+    relay_ip: [u8; 4],
+    relay_port: u16,
     users: HashMap<String, User>,
     usernames: HashMap<String, String>,
 }
@@ -26,6 +29,16 @@ pub struct User {
 }
 
 impl UserStore {
+    pub fn new(domain: &'static str, relay_ip: [u8; 4], relay_port: u16) -> Self {
+        UserStore {
+            domain,
+            relay_ip,
+            relay_port,
+            users: HashMap::new(),
+            usernames: HashMap::new(),
+        }
+    }
+
     pub fn get_user(&self, username: &str) -> Option<&User> {
         self.users.get(username)
     }
@@ -40,13 +53,7 @@ impl UserStore {
         }
     }
 
-    pub async fn add_user(
-        &mut self,
-        user: User,
-        domain: &str,
-        relay_ip: [u8; 4],
-        relay_port: u16,
-    ) -> Result<String, String> {
+    pub async fn add_user(&mut self, user: User) -> Result<String, String> {
         let User {
             username, email, ..
         } = &user;
@@ -55,7 +62,10 @@ impl UserStore {
             Entry::Vacant(vacant_user) => match self.usernames.entry(email.clone()) {
                 Entry::Occupied(_) => Err(format!("Email '{email}' already registered")),
                 Entry::Vacant(vacant_email) => {
-                    match user.send_email(domain, relay_ip, relay_port).await {
+                    match user
+                        .send_email(self.domain, self.relay_ip, self.relay_port)
+                        .await
+                    {
                         Ok(link) => {
                             vacant_email.insert(username.clone());
                             vacant_user.insert(user);

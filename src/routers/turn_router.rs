@@ -9,7 +9,7 @@ use axum_macros::debug_handler;
 
 use crate::controllers::turn_controller::*;
 use crate::http_client::HttpClient;
-use crate::StatusResponse;
+use crate::status_response::StatusResponse;
 
 pub fn new_router() -> Router<HttpClient> {
     Router::new().route("/turn/:TL/:BR", get(turn_handler))

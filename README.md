@@ -49,13 +49,10 @@ relay_ip = [130, 245, 171, 151]
 relay_port = 11587
 
 # urls for services (trailing slash significant!)
-photon_url = "http://localhost:2322/api"
-nominatim_url = "http://localhost:8080"
-tile_url = "http://localhost:8081/styles/maptiler-toner-gl/256/"
-turn_url = "http://localhost:8081/styles/maptiler-toner-gl/static/"
-routing_url = "http://localhost:5000/route/v1/driving/"
-
-submission_id = "FIX_ME"
+db_url = "postgres://renderer:renderer@localhost:5432/gis"
+tile_url = "http://localhost:8081/styles/osm-bright/256/"
+turn_url = "http://localhost:8081/styles/osm-bright/static/"
+route_url = "http://localhost:5000/route/v1/driving/"
 ```
 
 * Compile with `disable_email` flag to disable sending emails for verification.

@@ -9,7 +9,7 @@ use serde::Deserialize;
 
 use crate::controllers::route_controller::*;
 use crate::http_client::HttpClient;
-use crate::StatusResponse;
+use crate::status_response::StatusResponse;
 
 #[derive(Debug, Deserialize)]
 pub struct RouteParams {

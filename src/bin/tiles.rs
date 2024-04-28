@@ -5,10 +5,12 @@ use axum::Router;
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 
-use server::http_client::HttpClient;
-use server::routers::{convert_router, turn_router};
-use server::CONFIG;
-use server::{init_logging, print_request_response};
+use server::{
+    config::CONFIG,
+    http_client::HttpClient,
+    logging::{init_logging, print_request_response},
+    routers::{convert_router, turn_router},
+};
 
 /// Runs a routing service
 /// Reverse proxy traffic here *after* verifyinng authentication, this doesn't
@@ -16,13 +18,11 @@ use server::{init_logging, print_request_response};
 #[tokio::main]
 async fn main() {
     init_logging();
+
     let turn_client = HttpClient::new(CONFIG.turn_url).unwrap();
 
     let mut tiles_app = Router::new()
-        .nest(
-            "/",
-            turn_router::new_router().with_state(turn_client.clone()),
-        )
+        .nest("/", turn_router::new_router().with_state(turn_client))
         .nest("/", convert_router::new_router());
 
     if !cfg!(feature = "disable_logs") {
