@@ -40,8 +40,7 @@ FROM
         SELECT "addr:housenumber", tags, way FROM planet_osm_polygon
         UNION ALL
         SELECT "addr:housenumber", tags, way FROM planet_osm_roads
-    ) AS tables, 
-    point 
+    ) AS tables, point 
 WHERE 
     "addr:housenumber" IS NOT NULL 
     AND tags ?& ARRAY['addr:street', 'addr:city', 'addr:state'] 
