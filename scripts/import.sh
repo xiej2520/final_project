@@ -67,12 +67,20 @@ fi
 if [[ $IMPORT_DATABASE -eq 1 ]]; then
   docker volume create osm-data
 
+  # OSM2PGSQL_EXTRA_ARGS -C: MB RAM cache
   docker run --rm \
     -v /data/${PBF_FILENAME}:/data/region.osm.pbf \
     -v osm-data:/data/database/ \
     -e "FLAT_NODES=enabled" \
+    -e "threads=8" \
+    -e "OSM2PGSQL_EXTRA_ARGS=-C 4096" \
     overv/openstreetmap-tile-server \
     import
+  
+  docker run --rm \
+    -v osm-data:/data/database/ \
+    busybox \
+    rm /data/database/flat_nodes.bin
 fi
 
 if [[ $IMPORT_TILESERVER -eq 1 ]]; then

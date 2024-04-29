@@ -78,6 +78,7 @@ TILES_PORT=8003
 ## Inventory
 
 ```ini
+# there should only be **ONE** nginx and auth, on the **SAME** host
 nginx ansible_user=root ansible_host=0.0.0.0
 
 [auth]
