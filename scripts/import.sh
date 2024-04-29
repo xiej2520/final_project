@@ -71,8 +71,8 @@ if [[ $IMPORT_DATABASE -eq 1 ]]; then
   docker run --rm \
     -v /data/${PBF_FILENAME}:/data/region.osm.pbf \
     -v osm-data:/data/database/ \
+    -e "THREADS=$(nproc)" \
     -e "FLAT_NODES=enabled" \
-    -e "threads=8" \
     -e "OSM2PGSQL_EXTRA_ARGS=-C 4096" \
     overv/openstreetmap-tile-server \
     import
