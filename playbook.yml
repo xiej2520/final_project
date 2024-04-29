@@ -49,7 +49,7 @@
     - name: Build binaries
       changed_when: false # let cargo handle this
       ansible.builtin.command:
-        cmd: cargo build --release
+        cmd: cargo build --release -F disable_logs
 
 - name: Setup enviornment
   hosts: all

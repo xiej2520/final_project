@@ -9,15 +9,15 @@ export let options: Options = {
 
 const rand = (l: number, h: number) => (Math.random() * (h - l) + l);
 /// full us-northeast
-//const minlat = 39;
-//const maxlat = 47;
-//const minlon = -80;
-//const maxlon = -64;
+const minlat = 39;
+const maxlat = 47;
+const minlon = -80;
+const maxlon = -64;
 /// new england
-const minlat = 41.541478;
-const maxlat = 44.898687;
-const minlon = -74.742916;
-const maxlon = -71.054832;
+// const minlat = 41.541478;
+// const maxlat = 44.898687;
+// const minlon = -74.742916;
+// const maxlon = -71.054832;
 /// monaco
 //const minlat = 43;
 //const maxlat = 44;
@@ -53,5 +53,14 @@ export default () => {
   if (!convert_check) {
     fail("convert api failed");
   }
-  //sleep(1);
+  const { x_tile, y_tile } = JSON.parse(convert_response.body!.toString());
+
+  const tile_res = http.get(`http://localhost/tiles/${zoom}/${x_tile}/${y_tile}.png`);
+  check(tile_res, {
+    'tile status is 200': r => r.status === 200,
+    'Content-Type is png': r => r.headers['Content-Type'] === "image/png",
+    'Got an interesting image': r => parseInt(r.headers['Content-Length']) >= 2000,
+    'Got a very interesting image': r => parseInt(r.headers['Content-Length']) >= 10000,
+  });
+  sleep(1);
 };

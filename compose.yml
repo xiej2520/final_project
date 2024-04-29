@@ -5,42 +5,58 @@ services:
       - "80:80"
     volumes:
       - type: bind
-        source: nginx_single.conf
+        source: nginx.conf
         target: /etc/nginx/nginx.conf
       - ./static:/usr/share/nginx/html
-    network_mode: host
-  nominatim:
-    image: mediagis/nominatim:4.4
-    volumes:
-      - nominatim-data:/var/lib/postgresql/14/main
+
+  # auth microservice
+  auth:
+    build: .
+    image: server
+    command: auth
     ports:
-      - "8080:8080"
-      - "5432:5432"
-    environment:
-      - PBF_PATH=/data/${REGION:?}.osm.pbf
-  # nominatim reverse geocoding is much better than photon
-  photon:
-    image: amazoncorretto:22.0.1-alpine3.19
-    volumes:
-      - /data:/data
+      - "${AUTH_PORT:-8000}:80"
+
+  # search microservice
+  search:
+    build: .
+    image: server
+    command: search
     ports:
-      - "2322:2322"
-    command: java -jar /data/photon/photon-0.5.0.jar -data-dir /data/photon
-  osrm-backend:
-    image: ghcr.io/project-osrm/osrm-backend
-    command: osrm-routed --algorithm mld /data/${REGION:?}.osrm
+      - "${SEARCH_PORT:-8001}:80"
+  database:
+    image: overv/openstreetmap-tile-server:latest
+    command: run
+    shm_size: 2g
     volumes:
-      - /data/osrm:/data
+      - osm-data:/data/database
+
+  # tiles microservice
+  tiles:
+    build: .
+    image: server
+    command: tiles
     ports:
-      - "5000:5000"
+      - "${TILES_PORT:-8002}:80"
   tileserver:
     image: maptiler/tileserver-gl:latest
     volumes:
       - /data/tiles:/data/tiles
       - /data/tileserver:/data
+
+  # route microservice
+  route:
+    build: .
+    image: server
+    command: route 
     ports:
-      - "8081:8080"
+      - "${ROUTE_PORT:-8003}:80"
+  osrm-backend:
+    image: ghcr.io/project-osrm/osrm-backend
+    command: osrm-routed --algorithm mld /data/${REGION:?}.osrm
+    volumes:
+      - /data/osrm:/data
 
 volumes:
-  nominatim-data:
+  osm-data:
     external: true

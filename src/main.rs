@@ -82,8 +82,6 @@ async fn main() {
     let restricted_app = Router::new()
         .nest("/api", search_router::new_router().with_state(db_client))
         .nest("/api", address_router::new_router().with_state(db_client))
-        .nest("/", tile_router::new_router().with_state(tile_client))
-        .nest("/", turn_router::new_router().with_state(turn_client))
         .nest("/", convert_router::new_router())
         .nest("/api", route_router::new_router().with_state(route_client))
         .layer(axum::middleware::from_fn(login_gateway));
@@ -91,6 +89,8 @@ async fn main() {
     let mut app = Router::new()
         .nest_service("/", ServeDir::new("static"))
         .nest("/api", user_router::new_router().with_state(user_store))
+        .nest("/", tile_router::new_router().with_state(tile_client))
+        .nest("/", turn_router::new_router().with_state(turn_client))
         .nest("/", restricted_app)
         .layer(session_layer);
 

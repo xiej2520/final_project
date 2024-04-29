@@ -41,7 +41,7 @@ Example `config.toml`
 
 ```toml
 ip = [0, 0, 0, 0]
-http_port = 8000
+http_port = 80
 domain = "not-invented-here.cse356.compas.cs.stonybrook.edu"
 
 # email stuff
@@ -49,10 +49,10 @@ relay_ip = [130, 245, 171, 151]
 relay_port = 11587
 
 # urls for services (trailing slash significant!)
-db_url = "postgres://renderer:renderer@localhost:5432/gis"
-tile_url = "http://localhost:8081/styles/osm-bright/256/"
-turn_url = "http://localhost:8081/styles/osm-bright/static/"
-route_url = "http://localhost:5000/route/v1/driving/"
+db_url = "postgres://renderer:renderer@database:5432/gis"
+tile_url = "http://tileserver:8080/styles/osm-bright/256/"
+turn_url = "http://tileserver:8080/styles/osm-bright/static/"
+route_url = "http://osrm-backend:5000/route/v1/driving/"
 ```
 
 * Compile with `disable_email` flag to disable sending emails for verification.

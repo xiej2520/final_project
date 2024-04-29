@@ -56,7 +56,7 @@ export default () => {
   const x_tile = Math.floor(rand(ranges[zoom][0].x_tile, ranges[zoom][1].x_tile));
   const y_tile = Math.floor(rand(ranges[zoom][0].y_tile, ranges[zoom][1].y_tile));
 
-  const tile_res = http.get(`http://not-invented-here.cse356.compas.cs.stonybrook.edu/tiles/${zoom}/${x_tile}/${y_tile}.png`);
+  const tile_res = http.get(`http://localhost/tiles/${zoom}/${x_tile}/${y_tile}.png`);
   check(tile_res, {
     'tile status is 200': r => r.status === 200,
     'Content-Type is png': r => r.headers['Content-Type'] === "image/png",
