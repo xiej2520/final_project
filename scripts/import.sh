@@ -67,20 +67,52 @@ fi
 if [[ $IMPORT_DATABASE -eq 1 ]]; then
   docker volume create osm-data
 
-  # OSM2PGSQL_EXTRA_ARGS -C: MB RAM cache
   docker run --rm \
     -v /data/${PBF_FILENAME}:/data/region.osm.pbf \
     -v osm-data:/data/database/ \
     -e "THREADS=$(nproc)" \
-    -e "FLAT_NODES=enabled" \
-    -e "OSM2PGSQL_EXTRA_ARGS=-C 4096" \
+    -e "OSM2PGSQL_EXTRA_ARGS=--cache 4096 --drop" \
     overv/openstreetmap-tile-server \
     import
-  
-  docker run --rm \
-    -v osm-data:/data/database/ \
-    busybox \
-    rm /data/database/flat_nodes.bin
+
+  container_id=$(
+    docker run --rm \
+      -dp 5432:5432 \
+      -v osm-data:/data/database/ \
+      overv/openstreetmap-tile-server \
+      run
+  )
+
+  function check_postgres_ready() {
+    pg_isready -h localhost >/dev/null 2>&1
+  }
+
+  echo "Waiting for PostgreSQL to become ready..."
+  while ! check_postgres_ready; do
+    sleep 1
+  done
+
+  docker exec $container_id \
+    sudo -u postgres psql -d gis -c "CREATE EXTENSION pg_trgm;"
+  docker exec $container_id \
+    sudo -u postgres psql -d gis -c \
+    "CREATE INDEX planet_osm_line_name_idx ON planet_osm_line USING gin(name gin_trgm_ops);"
+  docker exec $container_id \
+    sudo -u postgres psql -d gis -c \
+    "CREATE INDEX planet_osm_point_name_idx ON planet_osm_point USING gin(name gin_trgm_ops);"
+  docker exec $container_id \
+    sudo -u postgres psql -d gis -c \
+    "CREATE INDEX planet_osm_polygon_name_idx ON planet_osm_polygon USING gin(name gin_trgm_ops);"
+  docker exec $container_id \
+    sudo -u postgres psql -d gis -c \
+    "CREATE INDEX planet_osm_roads_name_idx ON planet_osm_roads USING gin(name gin_trgm_ops);"
+
+  docker stop $container_id
+  docker rm $container_id
+
+  docker-volume-snapshot create osm-data /data/osm-data.tar
+  zstd /data/osm-data.tar 
+  rm /data/osm-data.tar
 fi
 
 if [[ $IMPORT_TILESERVER -eq 1 ]]; then
