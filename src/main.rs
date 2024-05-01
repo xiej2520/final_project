@@ -1,5 +1,6 @@
 use std::net::SocketAddr;
 
+use axum::body::Body;
 use axum::{extract::Request, middleware::Next};
 use axum::{
     response::{IntoResponse, Response},
@@ -8,7 +9,6 @@ use axum::{
 
 use tokio::sync::RwLock;
 use tokio_postgres::NoTls;
-use tower::ServiceBuilder;
 
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
@@ -91,16 +91,17 @@ async fn main() {
         .nest("/api", user_router::new_router().with_state(user_store))
         .nest("/", tile_router::new_router().with_state(tile_client))
         .nest("/", turn_router::new_router().with_state(turn_client))
-        .nest("/", restricted_app)
-        .layer(session_layer);
+        .nest("/", restricted_app); 
 
     if !cfg!(feature = "disable_logs") {
-        app = app.layer(
-            ServiceBuilder::new()
-                .layer(TraceLayer::new_for_http())
-                .layer(axum::middleware::from_fn(print_request_response)),
-        );
+        app = app
+            .layer(axum::middleware::from_fn(print_request_response))
+            .layer(TraceLayer::new_for_http());
     }
+
+    app = app
+        .layer(axum::middleware::from_fn(append_headers))
+        .layer(session_layer); 
 
     let addr = SocketAddr::from((CONFIG.ip, CONFIG.http_port));
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
@@ -121,4 +122,11 @@ async fn login_gateway(req: Request, next: Next) -> Response {
         },
         None => Json(StatusResponse::new_err("Unauthorized".to_owned())).into_response(),
     }
+}
+
+pub async fn append_headers(req: Request, next: Next) -> Response<Body> {
+    let mut res = next.run(req).await;
+    res.headers_mut()
+        .insert("x-cse356", CONFIG.submission_id.parse().unwrap());
+    res
 }

@@ -1,5 +1,5 @@
 ---
-- name: Install aptitude
+- name: Install and configure docker
   hosts: all
   tasks:
     - name: Update apt and install aptitude
@@ -8,18 +8,6 @@
         state: present
         update_cache: true
 
-- name: Install pip3
-  hosts: all
-  tasks:
-    - name: Update apt and install python3-pip
-      ansible.builtin.apt:
-        name: python3-pip
-        state: present
-        update_cache: true
-
-- name: Install and configure docker
-  hosts: all
-  tasks:
     - name: Add Docker GPG apt Key
       ansible.builtin.apt_key:
         url: https://download.docker.com/linux/ubuntu/gpg
@@ -30,50 +18,17 @@
         repo: deb https://download.docker.com/linux/ubuntu focal stable
         state: present
 
-    - name: Update apt and install docker-ce
+    - name: Install docker-ce and python3-docker
       ansible.builtin.apt:
-        name: docker-ce
+        name:
+          - docker-ce
+          - python3-docker
         state: present
         update_cache: true
-
-    - name: Install Docker SDK for Python
-      ansible.builtin.pip:
-        name:
-          - docker
-          - docker-compose
-        state: present
-
-- name: Build binaries
-  hosts: localhost
-  tasks:
-    - name: Build binaries
-      changed_when: false # let cargo handle this
-      ansible.builtin.command:
-        cmd: cargo build --release -F disable_logs
 
 - name: Setup enviornment
   hosts: all
   tasks:
-    - name: Find release binaries
-      ansible.builtin.find:
-        paths: ./target/release
-        file_type: file
-      delegate_to: localhost
-      register: binaries
-
-    - name: Copy release binaries
-      ansible.builtin.copy:
-        src: "{{ item.path }}"
-        dest: ./target/release/
-        mode: '0755'
-      loop: "{{ binaries.files }}"
-
-    - name: Copy docker compose files
-      ansible.builtin.copy:
-        src: ./compose.yml
-        dest: ./compose.yml
-        mode: '0655'
-
     - name: Copy dotenv fie
       ansible.builtin.copy:
         src: ./.env
@@ -86,10 +41,157 @@
         dest: ./config.toml
         mode: '0644'
 
-    - name: Shutdown docker compose
+- name: Install binaries
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Install binaries
+      ansible.builtin.command:
+        cmd: cargo build --release
+        creates: ./target/release
+
+- name: Setup auth microservice
+  hosts: auth
+  tasks:
+    - name: Copy auth binary
+      ansible.builtin.copy:
+        src: ./target/release/auth
+        dest: /bin
+        mode: '0755'
+
+    - name: Copy compose file
+      ansible.builtin.copy:
+        src: ./services/auth-compose.yml
+        dest: ./compose.yml
+        mode: '0644'
+
+    - name: Stop docker compose
       community.docker.docker_compose_v2:
         project_src: .
         state: absent
+
+    - name: Start auth microservice
+      community.docker.docker_compose_v2:
+        project_src: .
+        state: present
+
+- name: Setup search microservice
+  hosts: search
+  tasks:
+    - name: Copy search binary
+      ansible.builtin.copy:
+        src: ./target/release/search
+        dest: /bin
+        mode: '0755'
+
+    - name: Update apt and install zstd
+      ansible.builtin.apt:
+        name: zstd
+        state: present
+        update_cache: true
+
+    - name: Install docker-volume-snapshot
+      ansible.builtin.uri:
+        url: https://raw.githubusercontent.com/junedkhatri31/docker-volume-snapshot/main/docker-volume-snapshot
+        follow_redirects: true
+        dest: /usr/local/bin/docker-volume-snapshot
+        mode: '0755'
+
+    - name: Copy osm-data
+      ansible.posix.synchronize:
+        src: /data/osm-data.tar.zst
+        dest: /data/osm-data.tar.zst
+
+    - name: Decompress osm-data
+      ansible.builtin.command:
+        cmd: zstd -d /data/osm-data.tar.zst -o /data/osm-data.tar
+        creates: /data/osm-data.tar
+
+    - name: Restore osm-data
+      ansible.builtin.command:
+        cmd: docker-volume-snapshot restore /data/osm-data.tar osm-data
+        creates: /var/lib/docker/volumes/osm-data/_data
+
+    - name: Copy compose file
+      ansible.builtin.copy:
+        src: ./services/search-compose.yml
+        dest: ./compose.yml
+        mode: '0644'
+
+    - name: Stop docker compose
+      community.docker.docker_compose_v2:
+        project_src: .
+        state: absent
+
+    - name: Start search microservice
+      community.docker.docker_compose_v2:
+        project_src: .
+        state: present
+
+- name: Setup tiles microservice
+  hosts: tiles
+  tasks:
+    - name: Copy tiles binary
+      ansible.builtin.copy:
+        src: ./target/release/tiles
+        dest: /bin
+        mode: '0755'
+
+    - name: Copy tiles data
+      ansible.posix.synchronize:
+        src: /data/tiles/
+        dest: /data/tiles/
+
+    - name: Copy tileserver config files
+      ansible.posix.synchronize:
+        src: /data/tileserver/
+        dest: /data/tileserver/
+
+    - name: Copy compose file
+      ansible.builtin.copy:
+        src: ./services/tiles-compose.yml
+        dest: ./compose.yml
+        mode: '0644'
+
+    - name: Stop docker compose
+      community.docker.docker_compose_v2:
+        project_src: .
+        state: absent
+
+    - name: Start tiles microservice
+      community.docker.docker_compose_v2:
+        project_src: .
+        state: present
+
+- name: Setup route microservice
+  hosts: route
+  tasks:
+    - name: Copy route binary
+      ansible.builtin.copy:
+        src: ./target/release/route
+        dest: /bin
+        mode: '0755'
+
+    - name: Copy OSRM data
+      ansible.posix.synchronize:
+        src: /data/osrm/
+        dest: /data/osrm/
+
+    - name: Copy compose file
+      ansible.builtin.copy:
+        src: ./services/route-compose.yml
+        dest: ./compose.yml
+        mode: '0644'
+
+    - name: Stop docker compose
+      community.docker.docker_compose_v2:
+        project_src: .
+        state: absent
+
+    - name: Start route microservice
+      community.docker.docker_compose_v2:
+        project_src: .
+        state: present
 
 - name: Setup nginx
   hosts: nginx
@@ -107,128 +209,13 @@
         mode: '0655'
 
     - name: Start nginx loadbalancer
-      community.docker.docker_compose_v2:
-        project_src: .
-        services:
-          - nginx
-
-- name: Setup auth microserve
-  hosts: auth
-  tasks:
-    - name: Copy auth binary
-      ansible.builtin.copy:
-        src: ./target/release/auth
-        dest: /bin
-        mode: '0755'
-
-    - name: Start auth microservice
-      community.docker.docker_compose_v2:
-        project_src: .
-        services:
-          - auth
-
-- name: Setup routing microservice
-  hosts: routing
-  tasks:
-    - name: Copy routing binary
-      ansible.builtin.copy:
-        src: ./target/release/routing
-        dest: /bin
-        mode: '0755'
-
-    - name: Copy OSRM data
-      ansible.builtin.copy:
-        src: /data/osrm/
-        dest: /data/osrm/
-        mode: '0644'
-
-    - name: Start routing microservice
-      community.docker.docker_compose_v2:
-        project_src: .
-        services:
-          - routing
-          - osrm-backend
-
-- name: Setup tiles microservice
-  hosts: tiles
-  tasks:
-    - name: Copy tiles data
-      ansible.builtin.copy:
-        src: /data/tiles/
-        dest: /data/tiles/
-        mode: '0644'
-
-    - name: Copy tileserver config files
-      ansible.builtin.copy:
-        src: /data/tileserver/
-        dest: /data/tileserver/
-        mode: '0644'
-
-    - name: Start tiles microservice
-      community.docker.docker_compose_v2:
-        project_src: .
-        services:
-          - tiles
-          - tileserver
-
-# - name: Setup search microservice
-#   hosts: search
-#   tasks:
-#     - name: Copy search binary
-#       ansible.builtin.copy:
-#         src: ./target/release/search
-#         dest: /bin
-#         mode: '0755'
-
-#     - name: Update apt and install zstd
-#       ansible.builtin.apt:
-#         name: zstd
-#         state: present
-#         update_cache: true
-
-#     - name: Install docker-volume-snapshot
-#       ansible.builtin.uri:
-#         url: https://raw.githubusercontent.com/junedkhatri31/docker-volume-snapshot/main/docker-volume-snapshot
-#         follow_redirects: true
-#         dest: /usr/local/bin/docker-volume-snapshot
-#         mode: '0755'
-
-#     - name: Copy nominatim-data
-#       ansible.builtin.copy:
-#         src: /data/nominatim-data.tar.zst
-#         dest: /tmp
-#         mode: '0644'
-
-#     - name: Decompress nominatim-data
-#       ansible.builtin.command:
-#         cmd: zstd -d /tmp/nominatim-data.tar.zst -o /tmp/nominatim-data.tar
-#         creates: /tmp/nominatim-data.tar
-
-#     - name: Restore nominatim-data
-#       ansible.builtin.command:
-#         cmd: docker-volume-snapshot restore /tmp/nominatim-data.tar nominatim-data
-#         creates: /var/lib/docker/volumes/nominatim-data/_data
-
-#     - name: Start nominatim service
-#       community.docker.docker_container:
-#         name: nominatim
-#         image: mediagis/nominatim:4.4
-#         volumes:
-#           - nominatim-data:/var/lib/postgresql/14/main
-#         env:
-#           PBF_URL: https://download.geofabrik.de/europe/monaco-latest.osm.pbf # dummy url
-#         network_mode: host
-#         state: started
-#         restart: true
-
-#     - name: Start search service
-#       community.docker.docker_container:
-#         name: search
-#         image: ubuntu:jammy
-#         command: search
-#         volumes:
-#           - /bin:/bin
-#           - ./config.toml:/config.toml
-#         network_mode: host
-#         state: started
-#         restart: true
+      community.docker.docker_container:
+        name: nginx
+        image: nginx:latest
+        ports:
+          - "80:80"
+        volumes:
+          - ./nginx.conf:/etc/nginx/nginx.conf
+          - ./static:/usr/share/nginx/html
+        restart: true
+        restart_policy: always

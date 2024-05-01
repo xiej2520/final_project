@@ -1,0 +1,17 @@
+services:
+  route:
+    image: ubuntu:latest 
+    command: route
+    ports:
+      - "${ROUTE_PORT:-8003}:80"
+    volumes:
+      - /bin:/bin
+      - ./config.toml:/config.toml
+    depends_on:
+      - osrm-backend
+
+  osrm-backend:
+    image: ghcr.io/project-osrm/osrm-backend
+    command: osrm-routed --algorithm mld /data/${REGION:?}.osrm
+    volumes:
+      - /data/osrm:/data
