@@ -18,14 +18,15 @@ There are two ways to run as a mono service or distributed service. For both you
 4. Create `.env` file (see example)
 4. Run `docker compose up -d` to run the containers 
 
+Make sure you have a `config.toml` in root directory.
+
 ### Distributed service 
 
 1. Run `python3 -m pip install --user ansible` to install ansible
-2. Create `.env` file (see example)
-3. Create `inventory.ini` file (see example)
-4. Run `ansible-playbook -i inventory.ini playbook.yml` to deploy using ansible
+3. Create `inventory.ini` file (see example);w
+4. Run `ansible-playbook -i inventory.ini -e "REGION=<region> DOMAIN=<domain> SUBMISSION_ID=<submission_id>" playbook.yml` to deploy using ansible.
 
-Make sure you have a `config.toml`, `.env` and `inventory.ini` (for ansible) in root directory. Make sure all the ports match up.
+Make sure you have a `inventory.toml` in root directory.
 
 ### To copy to remote machine
 
