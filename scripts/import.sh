@@ -65,15 +65,15 @@ if [[ ! -f "/data/${PBF_FILENAME}" ]]; then
 fi
 
 if [[ $IMPORT_DATABASE -eq 1 ]]; then
-  # docker volume create osm-data
+  docker volume create osm-data
 
-  # docker run --rm \
-  #   -v /data/${PBF_FILENAME}:/data/region.osm.pbf \
-  #   -v osm-data:/data/database/ \
-  #   -e "THREADS=$(nproc)" \
-  #   -e "OSM2PGSQL_EXTRA_ARGS=--cache 4096 --drop" \
-  #   overv/openstreetmap-tile-server \
-  #   import
+  docker run --rm \
+    -v /data/${PBF_FILENAME}:/data/region.osm.pbf \
+    -v osm-data:/data/database/ \
+    -e "THREADS=$(nproc)" \
+    -e "OSM2PGSQL_EXTRA_ARGS=--cache 4096 --drop" \
+    overv/openstreetmap-tile-server \
+    import
 
   container_id=$(
     docker run --rm \
