@@ -3,7 +3,7 @@ services:
     image: ubuntu:latest 
     command: route
     ports:
-      - "${ROUTE_PORT:-8003}:80"
+      - "{{ http_port | default(8003) }}:80"
     volumes:
       - /bin:/bin
       - ./config.toml:/config.toml
@@ -12,6 +12,6 @@ services:
 
   osrm-backend:
     image: ghcr.io/project-osrm/osrm-backend
-    command: osrm-routed --algorithm mld /data/${REGION:?}.osrm
+    command: osrm-routed --algorithm mld /data/{{ REGION }}.osrm
     volumes:
       - /data/osrm:/data

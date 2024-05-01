@@ -16,41 +16,22 @@ services:
 
   # auth microservice
   auth:
-    image: ubuntu:latest
+    build: .
+    image: server
     command: auth
     ports:
       - "${AUTH_PORT:-8000}:80"
-    volumes:
-      - $HOME/.cargo/bin:/bin
-      - ./config.toml:/config.toml
-  # auth:
-  #   build: .
-  #   image: server
-  #   command: auth
-  #   ports:
-  #     - "${AUTH_PORT:-8000}:80"
 
   # search microservice
   search:
-    image: ubuntu:latest
+    build: .
+    image: server
     command: search
     ports:
       - "${SEARCH_PORT:-8001}:80"
-    volumes:
-      - $HOME/.cargo/bin:/bin
-      - ./config.toml:/config.toml
     depends_on:
       database:
-        condition: service_healthy   
-  # search:
-  #   build: .
-  #   image: server
-  #   command: search
-  #   ports:
-  #     - "${SEARCH_PORT:-8001}:80"
-  #   depends_on:
-  #     database:
-  #       condition: service_healthy
+        condition: service_healthy
   database:
     image: overv/openstreetmap-tile-server:latest
     command: run
@@ -66,23 +47,13 @@ services:
 
   # tiles microservice
   tiles:
-    image: ubuntu:latest
+    build: .
+    image: server
     command: tiles
     ports:
       - "${TILES_PORT:-8002}:80"
-    volumes:
-      - $HOME/.cargo/bin:/bin
-      - ./config.toml:/config.toml
     depends_on:
       - tileserver
-  # tiles:
-  #   build: .
-  #   image: server
-  #   command: tiles
-  #   ports:
-  #     - "${TILES_PORT:-8002}:80"
-  #   depends_on:
-  #     - tileserver
   tileserver:
     image: maptiler/tileserver-gl:latest
     volumes:
@@ -91,23 +62,13 @@ services:
 
   # route microservice
   route:
-    image: ubuntu:latest 
-    command: route
+    build: .
+    image: server
+    command: route 
     ports:
       - "${ROUTE_PORT:-8003}:80"
-    volumes:
-      - $HOME/.cargo/bin:/bin
-      - ./config.toml:/config.toml
     depends_on:
       - osrm-backend
-  # route:
-  #   build: .
-  #   image: server
-  #   command: route 
-  #   ports:
-  #     - "${ROUTE_PORT:-8003}:80"
-  #   depends_on:
-  #     - osrm-backend
   osrm-backend:
     image: ghcr.io/project-osrm/osrm-backend
     command: osrm-routed --algorithm mld /data/${REGION:?}.osrm

@@ -3,7 +3,7 @@ services:
     image: ubuntu:latest
     command: auth
     ports:
-      - "${AUTH_PORT:-8000}:80"
+      - "{{ http_port | default(8000) }}:80"
     volumes:
       - /bin:/bin
       - ./config.toml:/config.toml

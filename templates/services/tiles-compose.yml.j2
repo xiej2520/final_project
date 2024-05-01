@@ -3,7 +3,7 @@ services:
     image: ubuntu:latest
     command: tiles
     ports:
-      - "${TILES_PORT:-8002}:80"
+      - "{{ http_port | default(8002) }}:80"
     volumes:
       - /bin:/bin
       - ./config.toml:/config.toml

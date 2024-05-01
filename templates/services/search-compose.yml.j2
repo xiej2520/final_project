@@ -3,7 +3,7 @@ services:
     image: ubuntu:latest
     command: search
     ports:
-      - "${SEARCH_PORT:-8001}:80"
+      - "{{ http_port | default(8001) }}:80"
     volumes:
       - /bin:/bin
       - ./config.toml:/config.toml

@@ -29,12 +29,6 @@
 - name: Setup enviornment
   hosts: all
   tasks:
-    - name: Copy dotenv fie
-      ansible.builtin.copy:
-        src: ./.env
-        dest: ./.env
-        mode: '0655'
-
     - name: Copy rust config files using jinja
       ansible.builtin.template:
         src: ./templates/config.toml.j2
@@ -60,8 +54,8 @@
         mode: '0755'
 
     - name: Copy compose file
-      ansible.builtin.copy:
-        src: ./services/auth-compose.yml
+      ansible.builtin.template:
+        src: ./templates/services/auth-compose.yml.j2
         dest: ./compose.yml
         mode: '0644'
 
@@ -113,8 +107,8 @@
         creates: /var/lib/docker/volumes/osm-data/_data
 
     - name: Copy compose file
-      ansible.builtin.copy:
-        src: ./services/search-compose.yml
+      ansible.builtin.template:
+        src: ./templates/services/search-compose.yml.j2
         dest: ./compose.yml
         mode: '0644'
 
@@ -148,8 +142,8 @@
         dest: /data/tileserver/
 
     - name: Copy compose file
-      ansible.builtin.copy:
-        src: ./services/tiles-compose.yml
+      ansible.builtin.template:
+        src: ./templates/services/tiles-compose.yml.j2
         dest: ./compose.yml
         mode: '0644'
 
@@ -178,8 +172,8 @@
         dest: /data/osrm/
 
     - name: Copy compose file
-      ansible.builtin.copy:
-        src: ./services/route-compose.yml
+      ansible.builtin.template:
+        src: ./templates/services/route-compose.yml.j2
         dest: ./compose.yml
         mode: '0644'
 
