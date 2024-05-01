@@ -12,30 +12,35 @@ events {
 
 http {
     upstream auth {
+        keepalive {{ groups['auth'] | 2 * length }};
         {% for host in groups['auth'] %}
         server {{ hostvars[host]['ansible_host'] }}:{{ hostvars[host]['http_port'] | default(8000) }};
         {% endfor %}
     }
 
     upstream search {
-        {% for host in groups['search']%}
+        keepalive {{ groups['search'] | 2 * length }};
+        {% for host in groups['search'] %}
         server {{ hostvars[host]['ansible_host'] }}:{{ hostvars[host]['http_port'] | default(8001) }};
         {% endfor %}
     }
 
     upstream tiles {
+        keepalive {{ groups['tiles'] | 2 * length }};
         {% for host in groups['tiles'] %}
         server {{ hostvars[host]['ansible_host'] }}:{{ hostvars[host]['http_port'] | default(8002) }};
         {% endfor %}
     }
 
     upstream tileserver {
+        keepalive {{ groups['tiles'] | 2 * length }};
         {% for host in groups['tiles'] %}
         server {{ hostvars[host]['ansible_host'] }}:8080;
         {% endfor %}
     }
 
     upstream route {
+        keepalive {{ groups['route'] | 2 * length }};
         {% for host in groups['route'] %}
         server {{ hostvars[host]['ansible_host'] }}:{{ hostvars[host]['http_port'] | default(8003) }};
         {% endfor %}
@@ -106,24 +111,29 @@ http {
             auth_request_set $auth_status $upstream_status; 
             error_page 401 = @error401; #}
 
+            proxy_http_version 1.1;
             proxy_pass http://search;
             proxy_pass_request_body on;
             proxy_set_header Host $host;
             proxy_set_header Content-Type "application/json";
             proxy_set_header Cookie $http_cookie;
+            proxy_set_header Connection "";
         }
 
         location /tiles {
+            proxy_http_version 1.1;
             proxy_pass http://tileserver/styles/maptiler-toner-gl/256;
+            proxy_pass_request_body off; 
+            proxy_set_header Connection "";
             proxy_cache TileserverCache;
             proxy_cache_valid 200 1h;
         }
 
         location /turn {
+            proxy_http_version 1.1;
             proxy_pass http://tiles;
             proxy_pass_request_body off; 
-            proxy_set_header Host $host;
-            proxy_set_header Cookie $http_cookie;
+            proxy_set_header Connection "";
         }
 
         location /convert {
@@ -131,11 +141,13 @@ http {
             auth_request_set $auth_status $upstream_status; 
             error_page 401 = @error401; #}
 
+            proxy_http_version 1.1;
             proxy_pass http://tiles;
             proxy_pass_request_body on;
             proxy_set_header Host $host;
             proxy_set_header Content-Type "application/json";
             proxy_set_header Cookie $http_cookie;
+            proxy_set_header Connection "";
         }
 
         location /api/route {
@@ -143,11 +155,13 @@ http {
             auth_request_set $auth_status $upstream_status; 
             error_page 401 = @error401; #}
 
+            proxy_http_version 1.1;
             proxy_pass http://route;
             proxy_pass_request_body on;
             proxy_set_header Host $host;
             proxy_set_header Content-Type "application/json";
             proxy_set_header Cookie $http_cookie;
+            proxy_set_header Connection "";
         }
     }
 
