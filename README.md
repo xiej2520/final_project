@@ -22,11 +22,13 @@ Make sure you have a `config.toml` in root directory.
 
 ### Distributed service 
 
-1. Run `python3 -m pip install --user ansible` to install ansible
-3. Create `inventory.ini` file (see example);w
-4. Run `ansible-playbook -i inventory.ini -e "REGION=<region> DOMAIN=<domain> SUBMISSION_ID=<submission_id>" playbook.yml` to deploy using ansible.
+1. Run `./scripts/install_rust.sh` to install rust
+2. Run `cargo build --release` to build services
+3. Run `python3 -m pip install --user ansible` to install ansible
+4. Create `inventory.ini` file (see example)
+5. Run `ansible-playbook -i inventory.ini -e "REGION=<region> DOMAIN=<domain> SUBMISSION_ID=<submission_id>" playbook.yml` to deploy using ansible
 
-Make sure you have a `inventory.toml` in root directory.
+Make sure you have a `inventory.toml` in root directory. If you'd like you can also create a `extra_vars.yml` file to store the extra vars. 
 
 ### To copy to remote machine
 
