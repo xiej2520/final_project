@@ -30,7 +30,7 @@ http {
     proxy_cache_path /var/cache/nginx/tileserver
                      keys_zone=TileserverCache:50m
                      levels=1:2
-                     inactive=1h
+                     inactive=24h
                      max_size=10g;
 
     server {
@@ -49,7 +49,7 @@ http {
             proxy_pass_request_body off; 
             proxy_set_header Connection "keep-alive";
             proxy_cache TileserverCache;
-            proxy_cache_valid 200 1h;
+            proxy_cache_valid 200 24h;
             add_header X-Cache-Status $upstream_cache_status always; 
         }
     }

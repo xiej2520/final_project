@@ -20,7 +20,7 @@ async function main() {
                 };
                 futures.push([axios.post('http://not-invented-here.cse356.compas.cs.stonybrook.edu/api/route', body), body]);
                 //console.log(body);
-                if (futures.length > 3) {
+                if (futures.length > 1) {
                     for (let f of futures) {
                         try {
                             await f[0];

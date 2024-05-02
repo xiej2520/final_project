@@ -16,9 +16,9 @@ async function main() {
         [[566, 717], [637, 777]],
         [[1132, 1435], [1275, 1554]],
         [[2264, 2871], [2550, 3108]],
-        [[4528, 5742], [5100, 6216]],
-        [[9057, 11485], [10201, 12432]],
-        [[18115, 22971], [20402, 24864]],
+        [[4528, 5742], [5100, 6216]], // 1354824
+        [[9057, 11485], [10201, 12432]], // 5416868
+        [[18115, 22971], [20402, 24864]], // 21667472
     ];
     //[7, 16]
 
@@ -26,8 +26,10 @@ async function main() {
         console.log(`z: ${z}`);
         for (let x = ranges[z][0][0]; x <= ranges[z][1][0]; x++) {
             console.log(` ${z}: ${x}`);
-            for (let chunkStart = ranges[z][0][1]; chunkStart <= ranges[z][1][1]; chunkStart += 100) {
-                const chunkEnd = Math.min(chunkStart + 10, ranges[z][1][1] + 1);
+            const diff = 2;
+            for (let chunkStart = ranges[z][0][1]; chunkStart <= ranges[z][1][1]; chunkStart += diff) {
+                console.log(chunkStart);
+                const chunkEnd = Math.min(chunkStart + diff, ranges[z][1][1] + 1);
                 const promises = [];
                 for (let y = chunkStart; y < chunkEnd; y++) {
                     promises.push(axios.get(`http://not-invented-here.cse356.compas.cs.stonybrook.edu/tiles/${z}/${x}/${y}.png`));
