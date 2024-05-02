@@ -65,10 +65,32 @@ impl From<Step> for PathNodeObject {
     }
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+struct RndSrcDest {
+    slat: i32,
+    slon: i32,
+    dlat: i32,
+    dlon: i32,
+}
+
+impl fmt::Display for RndSrcDest {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{},{},{},{}", self.slat, self.slon, self.dlat, self.dlon)
+    }
+}
+
+
+const EPS: f64 = 0.0001; 
+
 #[io_cached(
     map_error = r##"|e| format!("{e:?}")"##,
-    convert = r##"{ format!("{},{},{},{}", source.lat, source.lon, destination.lat, destination.lon) }"##,
-    ty = "AsyncRedisCache<String, Vec<PathNodeObject>>",
+    convert = r##"{ RndSrcDest{
+        slat: (src.lat / EPS) as i32,
+        slon: (src.lon / EPS) as i32,
+        dlat: (dst.lat / EPS) as i32,
+        dlon: (dst.lon / EPS) as i32,
+    } }"##,
+    ty = "AsyncRedisCache<RndSrcDest, Vec<PathNodeObject>>",
     create = r##" {
         AsyncRedisCache::new("route_cache", 1)
             .set_refresh(true)
@@ -78,11 +100,11 @@ impl From<Step> for PathNodeObject {
             .expect("error building route redis cache")
     } "##
 )]
-pub async fn get_route_cache(client: &HttpClient, source: Coordinates, destination: Coordinates)
+pub async fn get_route_cache(client: &HttpClient, src: Coordinates, dst: Coordinates)
 -> Result<Vec<PathNodeObject>, String> {
     let url = format!(
         "{},{};{},{}?steps=true",
-        source.lon, source.lat, destination.lon, destination.lat
+        src.lon, src.lat, dst.lon, dst.lat
     );
 
     let builder = match client.get(&url).await {
@@ -115,9 +137,6 @@ pub async fn get_route_cache(client: &HttpClient, source: Coordinates, destinati
 
     Ok(path_nodes)
 }
-
-const EPS: f64 = 0.0001; 
-
 pub async fn get_route(
     client: &HttpClient,
     source: Coordinates,
