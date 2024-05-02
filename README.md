@@ -18,6 +18,9 @@ There are two ways to run as a mono service or distributed service. For both you
 4. Create `.env` file (see example)
 4. Run `docker compose up -d` to run the containers 
 
+scp -i ~/.ssh/ssh -r /data/osrm/us-northeast.osrm.fileIndex root@194.113.75.155:/data/osrm/us-northeast.osrm.fileIndex
+
+
 Make sure you have a `config.toml` in root directory.
 
 ### Distributed service 
@@ -60,6 +63,8 @@ db_url = "postgres://renderer:renderer@database:5432/gis"
 tile_url = "http://tileserver:8080/styles/osm-bright/256/"
 turn_url = "http://tileserver:8080/styles/osm-bright/static/"
 route_url = "http://osrm-backend:5000/route/v1/driving/"
+
+route_redis_url = "idk"
 ```
 
 * Compile with `disable_email` flag to disable sending emails for verification.

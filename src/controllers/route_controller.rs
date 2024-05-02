@@ -1,7 +1,10 @@
 use std::fmt;
 
+use cached::AsyncRedisCache;
+use cached::proc_macro::io_cached;
 use serde::{Deserialize, Serialize};
 
+use crate::config::CONFIG;
 use crate::http_client::HttpClient;
 
 #[derive(Debug, Deserialize)]
@@ -36,13 +39,13 @@ struct Step {
     distance: f64,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Coordinates {
     lat: f64,
     lon: f64,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct PathNodeObject {
     description: String,
     coordinates: Coordinates,
@@ -62,11 +65,21 @@ impl From<Step> for PathNodeObject {
     }
 }
 
-pub async fn get_route(
-    client: &HttpClient,
-    source: Coordinates,
-    destination: Coordinates,
-) -> Result<Vec<PathNodeObject>, String> {
+#[io_cached(
+    map_error = r##"|e| format!("{e:?}")"##,
+    convert = r##"{ format!("{},{},{},{}", source.lat, source.lon, destination.lat, destination.lon) }"##,
+    ty = "AsyncRedisCache<String, Vec<PathNodeObject>>",
+    create = r##" {
+        AsyncRedisCache::new("route_cache", 1)
+            .set_refresh(true)
+            .set_connection_string(&CONFIG.route_redis_url)
+            .build()
+            .await
+            .expect("error building route redis cache")
+    } "##
+)]
+pub async fn get_route_cache(client: &HttpClient, source: Coordinates, destination: Coordinates)
+-> Result<Vec<PathNodeObject>, String> {
     let url = format!(
         "{},{};{},{}?steps=true",
         source.lon, source.lat, destination.lon, destination.lat
@@ -101,4 +114,30 @@ pub async fn get_route(
     }
 
     Ok(path_nodes)
+}
+
+const EPS: f64 = 0.0001; 
+
+pub async fn get_route(
+    client: &HttpClient,
+    source: Coordinates,
+    destination: Coordinates,
+) -> Result<Vec<PathNodeObject>, String> {
+    let src_round = Coordinates {
+        lat: (source.lat / EPS) as i32 as f64 * EPS,
+        lon: (source.lon / EPS) as i32 as f64 * EPS,
+    };
+    let dst_round = Coordinates {
+        lat: (destination.lat / EPS) as i32 as f64 * EPS,
+        lon: (destination.lon / EPS) as i32 as f64 * EPS,
+    };
+    let mut res = get_route_cache(client, src_round, dst_round).await?;
+    
+    // lol
+    res[0].coordinates.lat = source.lat;
+    res[0].coordinates.lon = source.lon;
+
+    (*res.last_mut().unwrap()).coordinates.lat = destination.lat;
+    (*res.last_mut().unwrap()).coordinates.lon = destination.lon;
+    Ok(res)
 }
