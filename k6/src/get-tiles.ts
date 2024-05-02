@@ -36,7 +36,7 @@ const maxlon = -71.054832;
 //const minlon = 7;
 //const maxlon = 8;
 const minzoom = 7;
-const maxzoom = 22;
+const maxzoom = 18;
 
 // new england
 const ranges = [
@@ -46,7 +46,7 @@ const ranges = [
 [{x_tile:4780,y_tile:5897}, {x_tile:4966,y_tile:6159}],
 [{x_tile:9561,y_tile:11795}, {x_tile:9932,y_tile:12318}],
 [{x_tile:19123,y_tile:23590}, {x_tile:19865,y_tile:24636}],
-[{x_tile:19123,y_tile:23590}, {x_tile:39731,y_tile:49272}],
+[{x_tile:38246,y_tile:47180}, {x_tile:39731,y_tile:49272}],
 [{x_tile:76493,y_tile:94360}, {x_tile:79462,y_tile:98544}]
 ];
 
@@ -56,7 +56,7 @@ export default () => {
   const x_tile = Math.floor(rand(ranges[zoom][0].x_tile, ranges[zoom][1].x_tile));
   const y_tile = Math.floor(rand(ranges[zoom][0].y_tile, ranges[zoom][1].y_tile));
 
-  const tile_res = http.get(`http://not-invented-here.cse356.compas.cs.stonybrook.edu/tiles/${zoom}/${x_tile}/${y_tile}.png`);
+  const tile_res = http.get(`http://localhost/tiles/${zoom}/${x_tile}/${y_tile}.png`);
   check(tile_res, {
     'tile status is 200': r => r.status === 200,
     'Content-Type is png': r => r.headers['Content-Type'] === "image/png",
