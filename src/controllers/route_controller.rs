@@ -138,7 +138,7 @@ pub async fn get_route(
     
     if let Ok(serialized) = serde_json::to_vec(&path_nodes) {
         //tracing::debug!("{:?}", redis_conn.send_packed_command(redis::cmd("SET").arg(&key).arg(serialized)).await);
-        redis_conn.send_packed_command(redis::cmd("SET").arg(&key).arg(serialized)).await;
+        let _ = redis_conn.send_packed_command(redis::cmd("SET").arg(&key).arg(serialized)).await;
     }
 
     Ok(path_nodes)
