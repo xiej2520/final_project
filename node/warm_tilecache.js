@@ -1,54 +1,41 @@
 const axios = require('axios');
 
-const EPS = 0.5;
-
 async function main() {
-    const X = [39.0, 47.0];
-    const Y = [-80.0, -67.0];
+    const ranges = [
+        [[0, 0], [0, 0]],
+        [[0, 0], [0, 0]],
+        [[0, 0], [0, 0]],
+        [[0, 0], [0, 0]],
+        [[0, 0], [0, 0]],
+        [[0, 0], [0, 0]],
+        [[0, 0], [0, 0]], // 0..=6
+        [[34, 35], [40, 49]],
+        [[70, 89], [79, 97]],
+        [[141, 179], [159, 194]],
+        [[283, 358], [318, 388]],
+        [[566, 717], [637, 777]],
+        [[1132, 1435], [1275, 1554]],
+        [[2264, 2871], [2550, 3108]],
+        [[4528, 5742], [5100, 6216]],
+        [[9057, 11485], [10201, 12432]],
+        [[18115, 22971], [20402, 24864]],
+    ];
+    //[7, 16]
 
-    async function foo(x, y) {
-        const X = [39.0, 47.0];
-        const Y = [-80.0, -67.0];
-        let futures = [];
-        let x1 = X[0];
-        while (x1 <= X[1] + EPS) {
-            let y1 = Y[0];
-            while (y1 <= Y[1] + EPS) {
-                const body = {
-                    source: { lat: x, lon: y },
-                    destination: { lat: x1, lon: y1 }
-                };
-                futures.push([axios.post('http://not-invented-here.cse356.compas.cs.stonybrook.edu/api/route', body), body]);
-                console.log(body);
-                if (futures.length > 3) {
-                    for (let f of futures) {
-                        try {
-                            await f[0];
-                        } catch (err) {
-                            console.log(f[1]);
-                        }
-                    }
-                    futures = [];
+    for (let z = 7; z <= 15; z++) {
+        console.log(`z: ${z}`);
+        for (let x = ranges[z][0][0]; x <= ranges[z][1][0]; x++) {
+            console.log(` ${z}: ${x}`);
+            for (let chunkStart = ranges[z][0][1]; chunkStart <= ranges[z][1][1]; chunkStart += 100) {
+                const chunkEnd = Math.min(chunkStart + 10, ranges[z][1][1] + 1);
+                const promises = [];
+                for (let y = chunkStart; y < chunkEnd; y++) {
+                    promises.push(axios.get(`http://not-invented-here.cse356.compas.cs.stonybrook.edu/tiles/${z}/${x}/${y}.png`));
                 }
-                y1 += EPS;
+                await Promise.all(promises);
             }
-            x1 += EPS;
-            y1 = Y[0];
         }
     }
-
-    let x = X[0];
-    while (x <= X[1] + EPS) {
-        let y = Y[0];
-        while (y <= Y[1] + EPS) {
-            await foo(x, y);
-            y += EPS;
-            console.log(`${x} ${y}`);
-        }
-        x += EPS;
-        y = Y[0];
-    }
-    console.log("DONE");
 }
 
 main();

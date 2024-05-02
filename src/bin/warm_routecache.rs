@@ -20,7 +20,7 @@ async fn main() {
     let X = [39.0, 47.0];
     let Y = [-80.0, -67.0];
 
-    const EPS: f64 = 0.5;
+    const EPS: f64 = 0.25;
 
     let mut x = X[0];
     async fn foo(client: Client, x: f64, y: f64) {

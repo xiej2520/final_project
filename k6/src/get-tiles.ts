@@ -13,7 +13,7 @@ export const options = {
       rate: 1000,
       timeUnit: '1s',
       duration: '30s',
-      preAllocatedVUs: 5000,
+      preAllocatedVUs: 1000,
       maxVUs: 10000,
     },
   },
@@ -51,6 +51,8 @@ const ranges = [
 [{x_tile:4528,y_tile:5742},{x_tile:5100,y_tile:6216}],
 [{x_tile:9057,y_tile:11485},{x_tile:10201,y_tile:12432}],
 [{x_tile:18115,y_tile:22971},{x_tile:20402,y_tile:24864}]
+
+,[{x_tile:36230,y_tile:45942},{x_tile:40804,y_tile:49728}]
 ]
 
 // new england
@@ -67,6 +69,7 @@ const ranges = [
 
 // disable auth to run
 export default () => {
+  //const zoom = Math.floor(rand(16, 18));
   const zoom = Math.floor(rand(7, 10));
   const x_tile = Math.floor(rand(ranges[zoom][0].x_tile, ranges[zoom][1].x_tile));
   const y_tile = Math.floor(rand(ranges[zoom][0].y_tile, ranges[zoom][1].y_tile));
