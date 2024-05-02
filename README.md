@@ -64,7 +64,7 @@ tile_url = "http://tileserver:8080/styles/osm-bright/256/"
 turn_url = "http://tileserver:8080/styles/osm-bright/static/"
 route_url = "http://osrm-backend:5000/route/v1/driving/"
 
-route_redis_url = "idk"
+cache_url = "redis://cache:6379"
 ```
 
 * Compile with `disable_email` flag to disable sending emails for verification.
