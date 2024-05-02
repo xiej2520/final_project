@@ -5,6 +5,7 @@ services:
       - "80:80"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
+      - tiles-cache:/var/cache/nginx/tileserver
     depends_on: 
       - tiles
       - tileserver
@@ -27,3 +28,6 @@ services:
     volumes:
       - /data/tiles:/data/tiles
       - /data/tileserver:/data
+
+volumes:
+  tiles-cache:
