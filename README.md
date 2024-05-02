@@ -28,7 +28,11 @@ Make sure you have a `config.toml` in root directory.
 4. Create `inventory.ini` file (see example)
 5. Run `ansible-playbook -i inventory.ini -e "REGION=<region> DOMAIN=<domain> SUBMISSION_ID=<submission_id>" playbook.yml` to deploy using ansible
 
-Make sure you have a `inventory.toml` in root directory. If you'd like you can also create a `extra_vars.yml` file to store the extra vars. 
+```shell
+ansible-playbook -i inventory.ini -e "REGION=us-northeast DOMAIN=not-invented-here.cse356.compas.cs.stonybrook.edu SUBMISSION_ID=65b54162aa2cfc5a3dea55fe" playbook.yml --private-key
+```
+
+Make sure you have a `inventory.ini` in root directory. If you'd like you can also create a `extra_vars.yml` file to store the extra vars. 
 
 ### To copy to remote machine
 
