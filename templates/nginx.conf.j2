@@ -1,46 +1,48 @@
+{% set worker_connections = 2048 %}
+
 user  nginx;
 worker_processes  auto;
+worker_rlimit_nofile {{ worker_connections * 2}};
 
 error_log  /var/log/nginx/error.log notice;
 pid        /var/run/nginx.pid;
 
 
 events {
-    worker_connections  1024;
+    worker_connections {{ worker_connections }};
 }
-
 
 http {
     upstream auth {
-        keepalive {{ groups['auth'] | 2 * length }};
+        keepalive {{ groups['auth'] | length * 2 }};
         {% for host in groups['auth'] %}
         server {{ hostvars[host]['ansible_host'] }}:{{ hostvars[host]['http_port'] | default(8000) }};
         {% endfor %}
     }
 
     upstream search {
-        keepalive {{ groups['search'] | 2 * length }};
+        keepalive {{ groups['search'] | length * 2 }};
         {% for host in groups['search'] %}
         server {{ hostvars[host]['ansible_host'] }}:{{ hostvars[host]['http_port'] | default(8001) }};
         {% endfor %}
     }
 
     upstream tiles {
-        keepalive {{ groups['tiles'] | 2 * length }};
+        keepalive {{ groups['tiles'] | length * 2 }};
         {% for host in groups['tiles'] %}
         server {{ hostvars[host]['ansible_host'] }}:{{ hostvars[host]['http_port'] | default(8002) }};
         {% endfor %}
     }
 
     upstream tileserver {
-        keepalive {{ groups['tiles'] | 2 * length }};
+        keepalive {{ groups['tiles'] | length * 2 }};
         {% for host in groups['tiles'] %}
         server {{ hostvars[host]['ansible_host'] }}:8080;
         {% endfor %}
     }
 
     upstream route {
-        keepalive {{ groups['route'] | 2 * length }};
+        keepalive {{ groups['route'] | length * 2 }};
         {% for host in groups['route'] %}
         server {{ hostvars[host]['ansible_host'] }}:{{ hostvars[host]['http_port'] | default(8003) }};
         {% endfor %}
