@@ -1,10 +1,8 @@
 use std::fmt;
 
-use cached::AsyncRedisCache;
-use cached::proc_macro::io_cached;
+use redis::aio::ConnectionManager;
 use serde::{Deserialize, Serialize};
 
-use crate::config::CONFIG;
 use crate::http_client::HttpClient;
 
 #[derive(Debug, Deserialize)]
@@ -82,29 +80,32 @@ impl fmt::Display for RndSrcDest {
 
 const EPS: f64 = 0.001; 
 
-#[io_cached(
-    map_error = r##"|e| format!("{e:?}")"##,
-    convert = r##"{ RndSrcDest{
-        slat: (src.lat / EPS) as i32,
-        slon: (src.lon / EPS) as i32,
-        dlat: (dst.lat / EPS) as i32,
-        dlon: (dst.lon / EPS) as i32,
-    } }"##,
-    ty = "AsyncRedisCache<RndSrcDest, Vec<PathNodeObject>>",
-    create = r##" {
-        AsyncRedisCache::new("route_cache", 1)
-            .set_refresh(true)
-            .set_connection_string(&CONFIG.cache_url)
-            .build()
-            .await
-            .expect("error building route redis cache")
-    } "##
-)]
-pub async fn get_route_cache(client: &HttpClient, src: Coordinates, dst: Coordinates)
--> Result<Vec<PathNodeObject>, String> {
+pub async fn get_route(
+    client: &HttpClient,
+    mut redis_conn: ConnectionManager, 
+    source: Coordinates,
+    destination: Coordinates,
+) -> Result<Vec<PathNodeObject>, String> {
+    let (slat, slon) = ((source.lat / EPS) as i32, (source.lon / EPS) as i32);
+    let (dlat, dlon) = ((destination.lat / EPS) as i32, (destination.lon / EPS) as i32);
+    
+    let key = format!("{slat},{slon},{dlat},{dlon}");
+    let res = redis_conn.send_packed_command(redis::cmd("GET").arg(&key)).await;
+    if let Ok(redis::Value::Data(res)) = res {
+        if let Ok(mut res) = serde_json::from_slice::<Vec<PathNodeObject>>(&res) {
+            res[0].coordinates.lat = source.lat;
+            res[0].coordinates.lon = source.lon;
+
+            (*res.last_mut().unwrap()).coordinates.lat = destination.lat;
+            (*res.last_mut().unwrap()).coordinates.lon = destination.lon;
+            tracing::info!("Found cache hit {res:?}");
+            return Ok(res);
+        }
+    }
+
     let url = format!(
         "{},{};{},{}?steps=true",
-        src.lon, src.lat, dst.lon, dst.lat
+        source.lon, source.lat, destination.lon, destination.lat
     );
 
     let builder = match client.get(&url).await {
@@ -134,29 +135,10 @@ pub async fn get_route_cache(client: &HttpClient, src: Coordinates, dst: Coordin
             }
         }
     }
+    
+    if let Ok(serialized) = serde_json::to_vec(&path_nodes) {
+        tracing::debug!("{:?}", redis_conn.send_packed_command(redis::cmd("SET").arg(&key).arg(serialized)).await);
+    }
 
     Ok(path_nodes)
-}
-pub async fn get_route(
-    client: &HttpClient,
-    source: Coordinates,
-    destination: Coordinates,
-) -> Result<Vec<PathNodeObject>, String> {
-    let src_round = Coordinates {
-        lat: (source.lat / EPS) as i32 as f64 * EPS,
-        lon: (source.lon / EPS) as i32 as f64 * EPS,
-    };
-    let dst_round = Coordinates {
-        lat: (destination.lat / EPS) as i32 as f64 * EPS,
-        lon: (destination.lon / EPS) as i32 as f64 * EPS,
-    };
-    let mut res = get_route_cache(client, src_round, dst_round).await?;
-    
-    // lol
-    res[0].coordinates.lat = source.lat;
-    res[0].coordinates.lon = source.lon;
-
-    (*res.last_mut().unwrap()).coordinates.lat = destination.lat;
-    (*res.last_mut().unwrap()).coordinates.lon = destination.lon;
-    Ok(res)
 }
