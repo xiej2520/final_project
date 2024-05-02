@@ -17,9 +17,3 @@ services:
     volumes:
       - /data/tiles:/data/tiles
       - /data/tileserver:/data
-
-  cache: 
-    image: redis:alpine
-    command: ["redis-server", "--appendonly", "no", "--maxmemory", "16gb", "--maxmemory-policy", "allkeys-lru"]
-    ports:
-      - "6379:6379"
