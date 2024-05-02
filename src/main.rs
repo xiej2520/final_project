@@ -6,6 +6,7 @@ use axum::{
     Json, Router,
 };
 
+use redis::aio::ConnectionManager;
 use tokio::sync::RwLock;
 use tokio_postgres::NoTls;
 
@@ -78,11 +79,14 @@ async fn main() {
         })
         .unwrap();
 
+    let redis_client = redis::Client::open(CONFIG.cache_url).unwrap();
+    let redis_conn = ConnectionManager::new(redis_client).await.expect("Failed to connect to redis server");
+
     let restricted_app = Router::new()
         .nest("/api", search_router::new_router().with_state(db_client))
         .nest("/api", address_router::new_router().with_state(db_client))
         .nest("/", convert_router::new_router())
-        .nest("/api", route_router::new_router().with_state(route_client))
+        .nest("/api", route_router::new_router().with_state((route_client, redis_conn)))
         .layer(axum::middleware::from_fn(login_gateway));
 
     let mut app = Router::new()

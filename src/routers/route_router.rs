@@ -5,6 +5,7 @@ use axum::{
     Json, Router,
 };
 use axum_macros::debug_handler;
+use redis::aio::ConnectionManager;
 use serde::Deserialize;
 
 use crate::controllers::route_controller::*;
@@ -17,19 +18,19 @@ pub struct RouteParams {
     destination: Coordinates,
 }
 
-pub fn new_router() -> Router<HttpClient> {
+pub fn new_router() -> Router<(HttpClient, ConnectionManager)> {
     Router::new().route("/route", post(route_handler))
 }
 
 #[debug_handler]
 pub async fn route_handler(
-    State(client): State<HttpClient>,
+    State((client, redis_conn)): State<(HttpClient, ConnectionManager)>,
     Json(RouteParams {
         source,
         destination,
     }): Json<RouteParams>,
 ) -> Response {
-    match get_route(&client, source, destination).await {
+    match get_route(&client, redis_conn, source, destination).await {
         Ok(route) => Json(route).into_response(),
         Err(e) => {
             eprintln!("Error: {}", e);
