@@ -80,7 +80,7 @@ impl fmt::Display for RndSrcDest {
 }
 
 
-const EPS: f64 = 0.0001; 
+const EPS: f64 = 0.001; 
 
 #[io_cached(
     map_error = r##"|e| format!("{e:?}")"##,
