@@ -18,6 +18,11 @@ services:
 
   cache: 
     image: redis:alpine
-    command: ["redis-server", "--appendonly", "no", "--maxmemory", "16gb", "--maxmemory-policy", "allkeys-lru"]
+    command: ["redis-server", "--appendonly", "no", "--maxmemory", "16gb", "--save", "300", "--maxmemory-policy", "allkeys-lru"]
     ports:
       - "6379:6379"
+    volumes:
+      - redis-db:/data
+
+volumes:
+  redis-db:
