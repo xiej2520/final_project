@@ -78,14 +78,14 @@ impl fmt::Display for RndSrcDest {
 }
 
 
-const EPS: f64 = 0.001; 
+const EPS: f64 = 0.1; 
 
 pub async fn get_route(
     client: &HttpClient,
     mut redis_conn: ConnectionManager, 
     source: Coordinates,
     destination: Coordinates,
-) -> Result<Vec<PathNodeObject>, String> {
+) -> Result<(Vec<PathNodeObject>, bool), String> {
     let (slat, slon) = ((source.lat / EPS) as i32, (source.lon / EPS) as i32);
     let (dlat, dlon) = ((destination.lat / EPS) as i32, (destination.lon / EPS) as i32);
     
@@ -99,7 +99,7 @@ pub async fn get_route(
             (*res.last_mut().unwrap()).coordinates.lat = destination.lat;
             (*res.last_mut().unwrap()).coordinates.lon = destination.lon;
             //tracing::info!("Found cache hit {res:?}");
-            return Ok(res);
+            return Ok((res, true));
         }
     }
 
@@ -141,5 +141,5 @@ pub async fn get_route(
         let _ = redis_conn.send_packed_command(redis::cmd("SET").arg(&key).arg(serialized)).await;
     }
 
-    Ok(path_nodes)
+    Ok((path_nodes, false))
 }

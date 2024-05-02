@@ -31,7 +31,12 @@ pub async fn route_handler(
     }): Json<RouteParams>,
 ) -> Response {
     match get_route(&client, redis_conn, source, destination).await {
-        Ok(route) => Json(route).into_response(),
+        Ok((route, hit)) => {
+            let cache_status = if hit { "HIT" } else { "MISS" }; 
+            let mut res = Json(route).into_response(); 
+            res.headers_mut().insert("X-Cache-Status", cache_status.parse().unwrap()); 
+            res
+        },
         Err(e) => {
             eprintln!("Error: {}", e);
             Json(StatusResponse::new_err(e.to_string())).into_response()

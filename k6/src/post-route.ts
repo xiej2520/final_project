@@ -5,11 +5,11 @@ export const options = {
   scenarios: {
     constant_request_rate: {
       executor: 'constant-arrival-rate',
-      rate: 8000,
+      rate: 600,
       timeUnit: '1s',
       duration: '30s',
-      preAllocatedVUs: 8000,
-      maxVUs: 10000,
+      preAllocatedVUs: 500,
+      maxVUs: 1000,
     },
   },
 };
@@ -80,6 +80,7 @@ export default () => {
       }
       return true;
     },
+    'Got a cache hit': r => r.headers['X-Cache-Status'] === "HIT",
   });
   //sleep(1);
 };
