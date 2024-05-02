@@ -57,6 +57,7 @@ http {
             proxy_pass http://tiles:{{ http_port | default(8002) }};
             proxy_pass_request_body off; 
             proxy_set_header Connection "keep-alive";
+            add_header X-Cache-Status $upstream_cache_status always; 
         }
 
         location /convert {
