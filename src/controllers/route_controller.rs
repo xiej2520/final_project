@@ -72,7 +72,7 @@ impl From<Step> for PathNodeObject {
     create = r##" {
         AsyncRedisCache::new("route_cache", 1)
             .set_refresh(true)
-            .set_connection_string(&CONFIG.route_redis_url)
+            .set_connection_string(&CONFIG.cache_url)
             .build()
             .await
             .expect("error building route redis cache")

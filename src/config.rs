@@ -12,7 +12,7 @@ pub struct ServerConfig {
     pub tile_url: &'static str,
     pub turn_url: &'static str,
     pub route_url: &'static str,
-    pub route_redis_url: &'static str,
+    pub cache_url: &'static str,
 }
 
 pub static CONFIG: Lazy<ServerConfig> = Lazy::new(|| {
@@ -31,6 +31,6 @@ pub static CONFIG: Lazy<ServerConfig> = Lazy::new(|| {
         tile_url: config.get_string("tile_url").unwrap().leak(),
         turn_url: config.get_string("turn_url").unwrap().leak(),
         route_url: config.get_string("route_url").unwrap().leak(),
-        route_redis_url: config.get_string("route_redis_url").unwrap().leak(),
+        cache_url: config.get_string("cache_url").unwrap().leak(),
     })
 });
