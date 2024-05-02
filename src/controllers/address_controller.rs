@@ -61,10 +61,7 @@ pub async fn get_address(
     let stmt = client.prepare(ADDRESS_QUERY).await?;
 
     let row = client
-        .query_one(
-            &stmt,
-            &[&lon, &lat, &dist.unwrap_or(DIST_TOL)],
-        )
+        .query_one(&stmt, &[&lon, &lat, &dist.unwrap_or(DIST_TOL)])
         .await?;
 
     Ok(row.into())

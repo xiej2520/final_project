@@ -80,13 +80,18 @@ async fn main() {
         .unwrap();
 
     let redis_client = redis::Client::open(CONFIG.cache_url).unwrap();
-    let redis_conn = ConnectionManager::new(redis_client).await.expect("Failed to connect to redis server");
+    let redis_conn = ConnectionManager::new(redis_client)
+        .await
+        .expect("Failed to connect to redis server");
 
     let restricted_app = Router::new()
         .nest("/api", search_router::new_router().with_state(db_client))
         .nest("/api", address_router::new_router().with_state(db_client))
         .nest("/", convert_router::new_router())
-        .nest("/api", route_router::new_router().with_state((route_client, redis_conn)))
+        .nest(
+            "/api",
+            route_router::new_router().with_state((route_client, redis_conn)),
+        )
         .layer(axum::middleware::from_fn(login_gateway));
 
     let mut app = Router::new()
@@ -94,8 +99,8 @@ async fn main() {
         .nest("/api", user_router::new_router().with_state(user_store))
         .nest("/", tile_router::new_router().with_state(tile_client))
         .nest("/", turn_router::new_router().with_state(turn_client))
-        .nest("/", restricted_app) 
-        .layer(session_layer); 
+        .nest("/", restricted_app)
+        .layer(session_layer);
 
     if !cfg!(feature = "disable_logs") {
         app = app

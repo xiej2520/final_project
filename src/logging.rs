@@ -75,5 +75,3 @@ pub fn init_logging() {
     let registry = tracing_subscriber::registry().with(local_log);
     tracing::subscriber::set_global_default(registry).expect("Failed to enable logs");
 }
-
-
