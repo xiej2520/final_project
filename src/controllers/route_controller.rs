@@ -82,13 +82,16 @@ const EPS: f64 = 0.5;
 
 pub async fn get_route(
     client: &HttpClient,
-    mut redis_conn: ConnectionManager, 
+    mut redis_conn: ConnectionManager,
     source: Coordinates,
     destination: Coordinates,
 ) -> Result<(Vec<PathNodeObject>, bool), String> {
     let (slat, slon) = ((source.lat / EPS) as i32, (source.lon / EPS) as i32);
-    let (dlat, dlon) = ((destination.lat / EPS) as i32, (destination.lon / EPS) as i32);
-    
+    let (dlat, dlon) = (
+        (destination.lat / EPS) as i32,
+        (destination.lon / EPS) as i32,
+    );
+
     let key = format!("{slat},{slon},{dlat},{dlon}");
     tracing::info!(key); 
     let res = redis_conn.send_packed_command(redis::cmd("GET").arg(&key)).await;
@@ -136,10 +139,12 @@ pub async fn get_route(
             }
         }
     }
-    
+
     if let Ok(serialized) = serde_json::to_vec(&path_nodes) {
         //tracing::debug!("{:?}", redis_conn.send_packed_command(redis::cmd("SET").arg(&key).arg(serialized)).await);
-        let _ = redis_conn.send_packed_command(redis::cmd("SET").arg(&key).arg(serialized)).await;
+        let _ = redis_conn
+            .send_packed_command(redis::cmd("SET").arg(&key).arg(serialized))
+            .await;
     }
 
     Ok((path_nodes, false))

@@ -23,10 +23,14 @@ async fn main() {
     let route_client = HttpClient::new(CONFIG.route_url).unwrap();
 
     let redis_client = redis::Client::open(CONFIG.cache_url).unwrap();
-    let redis_conn = ConnectionManager::new(redis_client).await.expect("Failed to connect to redis server");
+    let redis_conn = ConnectionManager::new(redis_client)
+        .await
+        .expect("Failed to connect to redis server");
 
-    let mut route_app =
-        Router::new().nest("/api", route_router::new_router().with_state((route_client, redis_conn)));
+    let mut route_app = Router::new().nest(
+        "/api",
+        route_router::new_router().with_state((route_client, redis_conn)),
+    );
 
     if !cfg!(feature = "disable_logs") {
         route_app = route_app.layer(

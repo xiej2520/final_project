@@ -5,26 +5,29 @@ export const options = {
   scenarios: {
     constant_request_rate: {
       executor: 'constant-arrival-rate',
-      rate: 500,
+      rate: 100,
       timeUnit: '1s',
       duration: '30s',
-      preAllocatedVUs: 500,
-      maxVUs: 500,
+      preAllocatedVUs: 100,
+      maxVUs: 1000,
     },
   },
 };
 
 const rand = (l: number, h: number) => (Math.random() * (h - l) + l);
 /// full us-northeast
-//const minlat = 39;
-//const maxlat = 47;
-//const minlon = -80;
-//const maxlon = -64;
+const minlat = 39;
+const maxlat = 47;
+const minlon = -80;
+const maxlon = -67;
+// 8 * 13 = 104
+// (104 / eps)^2
+// 208^2 = 43000
 /// new england
-const minlat = 41.541478;
-const maxlat = 44.898687;
-const minlon = -74.742916;
-const maxlon = -71.054832;
+//const minlat = 41.541478;
+//const maxlat = 44.898687;
+//const minlon = -74.742916;
+//const maxlon = -71.054832;
 /// monaco
 //const minlat = 43;
 //const maxlat = 44;
