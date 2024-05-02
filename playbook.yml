@@ -26,6 +26,22 @@
         state: present
         update_cache: true
 
+- name: Install zstd and docker-volume-snapshot
+  hosts: all
+  tasks:
+    - name: Update apt and install zstd
+      ansible.builtin.apt:
+        name: zstd
+        state: present
+        update_cache: true
+
+    - name: Install docker-volume-snapshot
+      ansible.builtin.uri:
+        url: https://raw.githubusercontent.com/junedkhatri31/docker-volume-snapshot/main/docker-volume-snapshot
+        follow_redirects: true
+        dest: /usr/local/bin/docker-volume-snapshot
+        mode: '0755'
+
 - name: Setup enviornment
   hosts: all
   tasks:
@@ -78,19 +94,6 @@
         dest: /bin
         mode: '0755'
 
-    - name: Update apt and install zstd
-      ansible.builtin.apt:
-        name: zstd
-        state: present
-        update_cache: true
-
-    - name: Install docker-volume-snapshot
-      ansible.builtin.uri:
-        url: https://raw.githubusercontent.com/junedkhatri31/docker-volume-snapshot/main/docker-volume-snapshot
-        follow_redirects: true
-        dest: /usr/local/bin/docker-volume-snapshot
-        mode: '0755'
-
     - name: Copy osm-data
       ansible.posix.synchronize:
         src: /data/osm-data.tar.zst
@@ -130,6 +133,21 @@
         src: ./target/release/tiles
         dest: /bin
         mode: '0755'
+
+    - name: Copy tiles-cache
+      ansible.posix.synchronize:
+        src: /data/tiles-cache.tar.zst
+        dest: /data/tiles-cache.tar.zst
+
+    - name: Decompress tiles-cache
+      ansible.builtin.command:
+        cmd: zstd -d /data/tiles-cache.tar.zst -o /data/tiles-cache.tar
+        creates: /data/tiles-cache.tar
+
+    - name: Restore tilles-cache
+      ansible.builtin.command:
+        cmd: docker-volume-snapshot restore /data/tiles-cache.tar tiles-cache
+        creates: /var/lib/docker/volumes/tiles-cache/_data
 
     - name: Copy tiles data
       ansible.posix.synchronize:
@@ -171,6 +189,16 @@
         src: ./target/release/route
         dest: /bin
         mode: '0755'
+
+    - name: Copy redis-db
+      ansible.posix.synchronize:
+        src: /data/redis-db.tar
+        dest: /data/redis-db.tar
+
+    - name: Restore redis-db
+      ansible.builtin.command:
+        cmd: docker-volume-snapshot restore /data/redis-db.tar redis-db
+        creates: /var/lib/docker/volumes/redis-db/_data
 
     - name: Copy OSRM data
       ansible.posix.synchronize:

@@ -78,7 +78,7 @@ impl fmt::Display for RndSrcDest {
 }
 
 
-const EPS: f64 = 0.1; 
+const EPS: f64 = 0.5; 
 
 pub async fn get_route(
     client: &HttpClient,
@@ -90,6 +90,7 @@ pub async fn get_route(
     let (dlat, dlon) = ((destination.lat / EPS) as i32, (destination.lon / EPS) as i32);
     
     let key = format!("{slat},{slon},{dlat},{dlon}");
+    tracing::info!(key); 
     let res = redis_conn.send_packed_command(redis::cmd("GET").arg(&key)).await;
     if let Ok(redis::Value::Data(res)) = res {
         if let Ok(mut res) = serde_json::from_slice::<Vec<PathNodeObject>>(&res) {
