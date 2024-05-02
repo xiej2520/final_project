@@ -98,7 +98,7 @@ pub async fn get_route(
 
             (*res.last_mut().unwrap()).coordinates.lat = destination.lat;
             (*res.last_mut().unwrap()).coordinates.lon = destination.lon;
-            tracing::info!("Found cache hit {res:?}");
+            //tracing::info!("Found cache hit {res:?}");
             return Ok(res);
         }
     }
@@ -137,7 +137,8 @@ pub async fn get_route(
     }
     
     if let Ok(serialized) = serde_json::to_vec(&path_nodes) {
-        tracing::debug!("{:?}", redis_conn.send_packed_command(redis::cmd("SET").arg(&key).arg(serialized)).await);
+        //tracing::debug!("{:?}", redis_conn.send_packed_command(redis::cmd("SET").arg(&key).arg(serialized)).await);
+        redis_conn.send_packed_command(redis::cmd("SET").arg(&key).arg(serialized)).await;
     }
 
     Ok(path_nodes)
