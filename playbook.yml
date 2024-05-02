@@ -136,10 +136,16 @@
         src: /data/tiles/
         dest: /data/tiles/
 
-    - name: Copy tileserver config files
+    - name: Copy tileserver data
       ansible.posix.synchronize:
         src: /data/tileserver/
         dest: /data/tileserver/
+
+    - name: Copy nginx config
+      ansible.builtin.template:
+        src: ./templates/tileserver-nginx.conf.j2
+        dest: ./nginx.conf
+        mode: '0644'
 
     - name: Copy compose file
       ansible.builtin.template:
