@@ -1,10 +1,17 @@
 import { check, fail, sleep } from 'k6';
-import { Options } from 'k6/options';
 import http from 'k6/http';
 
-export let options: Options = {
-  vus: 1000,
-  duration: '100s',
+export const options = {
+  scenarios: {
+    constant_request_rate: {
+      executor: 'constant-arrival-rate',
+      rate: 8000,
+      timeUnit: '1s',
+      duration: '30s',
+      preAllocatedVUs: 8000,
+      maxVUs: 10000,
+    },
+  },
 };
 
 const rand = (l: number, h: number) => (Math.random() * (h - l) + l);
@@ -36,7 +43,7 @@ export default () => {
       lon: rand(minlon, maxlon),
     },
   };
-  const res = http.post('http://localhost/api/route', JSON.stringify(route_req), {
+  const res = http.post('http://not-invented-here.cse356.compas.cs.stonybrook.edu/api/route', JSON.stringify(route_req), {
     headers: { 'Content-Type': 'application/json'},
   });
   if (!check(res, { 'status is 200': r => r.status === 200, })) {
