@@ -30,7 +30,14 @@ http {
     upstream tiles {
         keepalive {{ groups['tiles'] | length * 2 }};
         {% for host in groups['tiles'] %}
-        server {{ hostvars[host]['ansible_host'] }};
+        server {{ hostvars[host]['ansible_host'] }}:{{ hostvars[host]['http_port'] | default(8002) }};
+        {% endfor %}
+    }
+
+    upstream tileserver {
+        keepalive {{ groups['tiles'] | length * 2 }};
+        {% for host in groups['tiles'] %}
+        server {{ hostvars[host]['ansible_host'] }}; 
         {% endfor %}
     }
 
@@ -104,11 +111,18 @@ http {
             proxy_set_header Connection "keep-alive";
         }
 
-        location ~* ^/(tiles|turn) {
+        location /tiles {
+            proxy_http_version 1.1;
+            proxy_pass http://tileserver;
+            proxy_pass_request_body off; 
+            proxy_set_header Connection "keep-alive";
+        }
+
+        location /turn {
             proxy_http_version 1.1;
             proxy_pass http://tiles;
-            proxy_pass_request_body off;
-            proxy_set_header Connection "keep-alive";
+            proxy_pass_request_body off; 
+            proxy_set_header Connection "kee-alive";
         }
 
         location /convert {
@@ -122,8 +136,7 @@ http {
             proxy_set_header Host $host;
             proxy_set_header Content-Type "application/json";
             proxy_set_header Cookie $http_cookie;
-            proxy_set_header Connection "keep-alive";
-
+            proxy_set_header Connection "kee-alive";
         }
 
         location /api/route {
