@@ -10,10 +10,10 @@ export const options = {
   scenarios: {
     constant_request_rate: {
       executor: 'constant-arrival-rate',
-      rate: 1000,
+      rate: 3000,
       timeUnit: '1s',
       duration: '30s',
-      preAllocatedVUs: 1000,
+      preAllocatedVUs: 3000,
       maxVUs: 10000,
     },
   },
@@ -21,7 +21,7 @@ export const options = {
 
 const rand = (l: number, h: number) => (Math.random() * (h - l) + l);
 /// full us-northeast
-const minlat = 39;
+const minlat = 38;
 const maxlat = 47;
 const minlon = -80;
 const maxlon = -67;

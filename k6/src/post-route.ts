@@ -5,11 +5,11 @@ export const options = {
   scenarios: {
     constant_request_rate: {
       executor: 'constant-arrival-rate',
-      rate: 1000,
+      rate: 3000,
       timeUnit: '1s',
       duration: '30s',
-      preAllocatedVUs: 1200,
-      maxVUs: 10000,
+      preAllocatedVUs: 3000,
+      maxVUs: 3000,
     },
   },
 };
@@ -20,9 +20,6 @@ const minlat = 39;
 const maxlat = 47;
 const minlon = -80;
 const maxlon = -67;
-// 8 * 13 = 104
-// (104 / eps)^2
-// 208^2 = 43000
 /// new england
 //const minlat = 41.541478;
 //const maxlat = 44.898687;
