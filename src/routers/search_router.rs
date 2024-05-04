@@ -34,20 +34,20 @@ pub async fn search_handler(
 ) -> Response {
     if only_in_box {
         match bbox {
-            Some(bbox) => match search_in_bbox(&client, bbox, &search_term).await {
+            Some(bbox) => match search_in_bbox(client, bbox, &search_term).await {
                 Ok(objs) => Json(objs).into_response(),
                 Err(e) => {
-                    eprintln!("Error: {}", e);
+                    tracing::error!("search_in_bbox error: {e}");
                     Json(StatusResponse::new_err(e.to_string())).into_response()
                 }
             },
             None => Json(Vec::<InBBoxObject>::new()).into_response(),
         }
     } else {
-        match search_anywhere(&client, &search_term).await {
+        match search_anywhere(client, &search_term).await {
             Ok(objs) => Json(objs).into_response(),
             Err(e) => {
-                eprintln!("Error: {}", e);
+                tracing::error!("Error: {e}");
                 Json(StatusResponse::new_err(e.to_string())).into_response()
             }
         }

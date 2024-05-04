@@ -1,4 +1,5 @@
 use std::net::SocketAddr;
+use std::sync::{atomic::AtomicU32, Arc};
 
 use axum::{extract::Request, middleware::Next};
 use axum::{
@@ -6,7 +7,6 @@ use axum::{
     Json, Router,
 };
 
-use redis::aio::ConnectionManager;
 use tokio::sync::RwLock;
 use tokio_postgres::NoTls;
 
@@ -41,7 +41,7 @@ impl ServerState {
         let db_client = Box::leak(Box::new(db_client));
         tokio::spawn(async move {
             if let Err(e) = db_conn.await {
-                eprintln!("Connection error: {}", e);
+                panic!("Postgres DB connection error: {e}");
             }
         });
         let tile_client = HttpClient::new(CONFIG.tile_url)?;
@@ -79,19 +79,13 @@ async fn main() {
         })
         .unwrap();
 
-    let redis_client = redis::Client::open(CONFIG.cache_url).unwrap();
-    let redis_conn = ConnectionManager::new(redis_client)
-        .await
-        .expect("Failed to connect to redis server");
+    let lie = Arc::new(AtomicU32::new(0));
 
     let restricted_app = Router::new()
         .nest("/api", search_router::new_router().with_state(db_client))
         .nest("/api", address_router::new_router().with_state(db_client))
         .nest("/", convert_router::new_router())
-        .nest(
-            "/api",
-            route_router::new_router().with_state((route_client, redis_conn)),
-        )
+        .nest("/api", route_router::new_router().with_state((route_client, lie)))
         .layer(axum::middleware::from_fn(login_gateway));
 
     let mut app = Router::new()
@@ -99,8 +93,8 @@ async fn main() {
         .nest("/api", user_router::new_router().with_state(user_store))
         .nest("/", tile_router::new_router().with_state(tile_client))
         .nest("/", turn_router::new_router().with_state(turn_client))
-        .nest("/", restricted_app)
-        .layer(session_layer);
+        .nest("/", restricted_app) 
+        .layer(session_layer); 
 
     if !cfg!(feature = "disable_logs") {
         app = app
@@ -111,7 +105,7 @@ async fn main() {
     let addr = SocketAddr::from((CONFIG.ip, CONFIG.http_port));
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
 
-    tracing::info!("Server listening on {}", addr);
+    tracing::info!("Server listening on {addr}");
     axum::serve(listener, app).await.unwrap();
 }
 

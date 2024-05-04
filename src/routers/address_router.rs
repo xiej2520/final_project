@@ -27,7 +27,7 @@ async fn address_handler(
     State(client): State<&'static tokio_postgres::Client>,
     Json(AddressParams { lat, lon, dist }): Json<AddressParams>,
 ) -> Response {
-    match get_address(&client, lat, lon, dist).await {
+    match get_address(client, lat, lon, dist).await {
         Ok(address) => Json(address).into_response(),
         Err(e) => {
             tracing::error!("{e}");

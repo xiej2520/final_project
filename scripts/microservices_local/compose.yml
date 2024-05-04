@@ -7,7 +7,7 @@ services:
       - type: bind
         source: nginx.conf
         target: /etc/nginx/nginx.conf
-      - ./static:/usr/share/nginx/html
+      - ../../../static:/usr/share/nginx/html
     depends_on:
       - auth
       - search
@@ -77,10 +77,14 @@ services:
       
   cache: 
     image: redis:alpine
-    command: ["redis-server", "--appendonly", "no", "--maxmemory", "16gb", "--maxmemory-policy", "allkeys-lru"]
+    command: redis-server --appendonly no --maxmemory 8gb --save 60 1 --maxmemory-policy allkeys-lru
     ports:
       - "6379:6379"
+    volumes:
+      - redis-db:/data
 
 volumes:
+  redis-db:
+    external: true
   osm-data:
     external: true

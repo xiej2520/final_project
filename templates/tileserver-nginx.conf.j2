@@ -30,7 +30,7 @@ http {
     proxy_cache_path /var/cache/nginx/tileserver
                      keys_zone=TileserverCache:50m
                      levels=1:2
-                     inactive=24h
+                     inactive=365d
                      max_size=10g;
 
     server {
@@ -48,8 +48,8 @@ http {
             proxy_pass http://tileserver:8080/styles/maptiler-toner-gl/256;
             proxy_pass_request_body off; 
             proxy_set_header Connection "keep-alive";
-            proxy_cache TileserverCache;
-            proxy_cache_valid 200 24h;
+            #proxy_cache TileserverCache;
+            #proxy_cache_valid 200 365d;
             add_header X-Cache-Status $upstream_cache_status always; 
         }
     }

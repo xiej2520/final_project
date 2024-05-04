@@ -39,3 +39,6 @@ sudo tar -I zstd -cvpf data-us-northeast-photon.tar.zst /data/photon
 tar --zstd -xvf data-us-northeast-photon.tar.zst -C /
 
 #### NOMINATIM NEEDS THE .osm.pbf FILE
+
+### Redis
+docker volume create redis-db

@@ -2,6 +2,8 @@ use std::net::SocketAddr;
 
 use axum::Router;
 
+#[allow(unused_imports)]
+use redis::aio::ConnectionManager;
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 
@@ -21,6 +23,10 @@ async fn main() {
 
     let turn_client = HttpClient::new(CONFIG.turn_url).unwrap();
 
+    //let redis_client = redis::Client::open(CONFIG.cache_url).unwrap();
+    //let redis_conn = ConnectionManager::new(redis_client)
+    //    .await
+    //    .expect("Failed to connect to redis server");
     let mut tiles_app = Router::new()
         .nest("/", turn_router::new_router().with_state(turn_client))
         .nest("/", convert_router::new_router());
@@ -36,6 +42,6 @@ async fn main() {
     let addr = SocketAddr::from((CONFIG.ip, CONFIG.http_port));
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
 
-    tracing::debug!("Server listening on {}", addr);
+    tracing::info!("Server listening on {addr}");
     axum::serve(listener, tiles_app).await.unwrap();
 }

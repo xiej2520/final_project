@@ -26,7 +26,7 @@ pub async fn tile_handler(
     match get_tile(&client, layer, x, y).await {
         Ok(bytes) => Response::new(Body::from(bytes)),
         Err(e) => {
-            eprintln!("Error: {}", e);
+            tracing::error!("Error: {e}");
             Json(StatusResponse::new_err(e.to_string())).into_response()
         }
     }

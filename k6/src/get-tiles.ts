@@ -10,7 +10,7 @@ export const options = {
   scenarios: {
     constant_request_rate: {
       executor: 'constant-arrival-rate',
-      rate: 3000,
+      rate: 2000,
       timeUnit: '1s',
       duration: '30s',
       preAllocatedVUs: 3000,

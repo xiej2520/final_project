@@ -103,7 +103,7 @@ impl User {
     ) -> Result<String, String> {
         // escape special characters in email, including '+'
         let verification_link = Url::parse_with_params(
-            format!("http://{}/api/verify", domain).as_str(),
+            format!("http://{domain}/api/verify").as_str(),
             &[("email", self.email.as_str()), ("key", self.key.as_str())],
         )
         .map_err(|e| e.to_string())?

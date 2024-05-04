@@ -41,7 +41,7 @@ pub async fn turn_handler(
             res
         }
         Err(e) => {
-            eprintln!("Error: {}", e);
+            tracing::error!("Error: {e}");
             Json(StatusResponse::new_err(e.to_string())).into_response()
         }
     }

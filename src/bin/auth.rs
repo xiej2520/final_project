@@ -47,6 +47,6 @@ async fn main() {
     let addr = SocketAddr::from((CONFIG.ip, CONFIG.http_port));
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
 
-    tracing::debug!("Server listening on {}", addr);
+    tracing::info!("Server listening on {addr}");
     axum::serve(listener, auth_app).await.unwrap();
 }

@@ -5,11 +5,11 @@ export const options = {
   scenarios: {
     constant_request_rate: {
       executor: 'constant-arrival-rate',
-      rate: 3000,
+      rate: 5000,
       timeUnit: '1s',
       duration: '30s',
-      preAllocatedVUs: 3000,
-      maxVUs: 3000,
+      preAllocatedVUs: 5000,
+      maxVUs: 100000,
     },
   },
 };
@@ -43,9 +43,10 @@ export default () => {
       lon: rand(minlon, maxlon),
     },
   };
-  const res = http.post('http://not-invented-here.cse356.compas.cs.stonybrook.edu/api/route', JSON.stringify(route_req), {
-    headers: { 'Content-Type': 'application/json'},
-  });
+  //const res = http.post('http://not-invented-here.cse356.compas.cs.stonybrook.edu/api/route', JSON.stringify(route_req), {
+  //  headers: { 'Content-Type': 'application/json'},
+  //});
+  const res = http.get('http://not-invented-here.cse356.compas.cs.stonybrook.edu/api/route/reset');
   if (!check(res, { 'status is 200': r => r.status === 200, })) {
     fail('status code was not 200');
   }

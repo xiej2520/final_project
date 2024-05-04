@@ -26,6 +26,11 @@
         state: present
         update_cache: true
 
+    - name: Creates /data
+      ansible.builtin.file:
+        path: /data
+        state: directory
+
 - name: Install zstd and docker-volume-snapshot
   hosts: all
   tasks:
@@ -128,6 +133,12 @@
 - name: Setup tiles microservice
   hosts: tiles
   tasks:
+    - name: Set file limits for root user
+      pam_limits:
+        domain: '*'
+        limit_type: '-'
+        limit_item: nofile
+        value: 64000
     - name: Copy tiles binary
       ansible.builtin.copy:
         src: ./target/release/tiles
@@ -184,6 +195,12 @@
 - name: Setup route microservice
   hosts: route
   tasks:
+    - name: Set file limits for root user
+      pam_limits:
+        domain: '*'
+        limit_type: '-'
+        limit_item: nofile
+        value: 64000
     - name: Copy route binary
       ansible.builtin.copy:
         src: ./target/release/route
@@ -224,6 +241,13 @@
 - name: Setup nginx
   hosts: nginx
   tasks:
+    - name: Set file limits for root user
+      pam_limits:
+        domain: '*'
+        limit_type: '-'
+        limit_item: nofile
+        value: 64000
+
     - name: Copy nginx config using jinja
       ansible.builtin.template:
         src: ./templates/nginx.conf.j2
@@ -236,14 +260,14 @@
         dest: ./static/
         mode: '0655'
 
-    - name: Start nginx loadbalancer
-      community.docker.docker_container:
-        name: nginx
-        image: nginx:latest
-        ports:
-          - "80:80"
-        volumes:
-          - ./nginx.conf:/etc/nginx/nginx.conf
-          - ./static:/usr/share/nginx/html
-        restart: true
-        restart_policy: always
+#    - name: start nginx loadbalancer
+#      community.docker.docker_container:
+#        name: nginx
+#        image: nginx:latest
+#        ports:
+#          - "80:80"
+#        volumes:
+#          - ./nginx.conf:/etc/nginx/nginx.conf
+#          - ./static:/usr/share/nginx/html
+#        restart: true
+#        restart_policy: always

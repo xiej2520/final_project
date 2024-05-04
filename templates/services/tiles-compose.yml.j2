@@ -9,6 +9,10 @@ services:
     depends_on: 
       - tiles
       - tileserver
+    ulimits:
+      nofile:
+          soft: 65536
+          hard: 65536
 
   tiles:
     image: ubuntu:latest
@@ -20,6 +24,10 @@ services:
       - ./config.toml:/config.toml
     depends_on:
       - tileserver
+    ulimits:
+      nofile:
+          soft: 65536
+          hard: 65536
 
   tileserver:
     image: maptiler/tileserver-gl:latest
@@ -28,6 +36,10 @@ services:
     volumes:
       - /data/tiles:/data/tiles
       - /data/tileserver:/data
+    ulimits:
+      nofile:
+          soft: 65536
+          hard: 65536
 
 volumes:
   tiles-cache:

@@ -1,6 +1,5 @@
 use std::fmt;
 
-use redis::aio::ConnectionManager;
 use serde::{Deserialize, Serialize};
 
 use crate::http_client::HttpClient;
@@ -37,13 +36,13 @@ struct Step {
     distance: f64,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Coordinates {
     lat: f64,
     lon: f64,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct PathNodeObject {
     description: String,
     coordinates: Coordinates,
@@ -63,50 +62,11 @@ impl From<Step> for PathNodeObject {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
-struct RndSrcDest {
-    slat: i32,
-    slon: i32,
-    dlat: i32,
-    dlon: i32,
-}
-
-impl fmt::Display for RndSrcDest {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{},{},{},{}", self.slat, self.slon, self.dlat, self.dlon)
-    }
-}
-
-
-const EPS: f64 = 0.5; 
-
 pub async fn get_route(
     client: &HttpClient,
-    mut redis_conn: ConnectionManager,
     source: Coordinates,
     destination: Coordinates,
-) -> Result<(Vec<PathNodeObject>, bool), String> {
-    let (slat, slon) = ((source.lat / EPS) as i32, (source.lon / EPS) as i32);
-    let (dlat, dlon) = (
-        (destination.lat / EPS) as i32,
-        (destination.lon / EPS) as i32,
-    );
-
-    let key = format!("{slat},{slon},{dlat},{dlon}");
-    tracing::info!(key); 
-    let res = redis_conn.send_packed_command(redis::cmd("GET").arg(&key)).await;
-    if let Ok(redis::Value::Data(res)) = res {
-        if let Ok(mut res) = serde_json::from_slice::<Vec<PathNodeObject>>(&res) {
-            res[0].coordinates.lat = source.lat;
-            res[0].coordinates.lon = source.lon;
-
-            (*res.last_mut().unwrap()).coordinates.lat = destination.lat;
-            (*res.last_mut().unwrap()).coordinates.lon = destination.lon;
-            //tracing::info!("Found cache hit {res:?}");
-            return Ok((res, true));
-        }
-    }
-
+) -> Result<Vec<PathNodeObject>, String> {
     let url = format!(
         "{},{};{},{}?steps=true",
         source.lon, source.lat, destination.lon, destination.lat
@@ -140,12 +100,5 @@ pub async fn get_route(
         }
     }
 
-    if let Ok(serialized) = serde_json::to_vec(&path_nodes) {
-        //tracing::debug!("{:?}", redis_conn.send_packed_command(redis::cmd("SET").arg(&key).arg(serialized)).await);
-        let _ = redis_conn
-            .send_packed_command(redis::cmd("SET").arg(&key).arg(serialized))
-            .await;
-    }
-
-    Ok((path_nodes, false))
+    Ok(path_nodes)
 }

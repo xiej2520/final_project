@@ -12,7 +12,7 @@ impl DbClient {
             .expect("Failed to connect to postgresql server");
         tokio::spawn(async move {
             if let Err(e) = db_conn.await {
-                tracing::error!("Connection error: {}", e);
+                tracing::error!("Postgres DB connection error: {e}");
             }
         });
         let client = Box::leak(Box::new(client));

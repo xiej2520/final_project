@@ -26,7 +26,7 @@ async fn main() {
     let db_client = Box::leak(Box::new(db_client));
     tokio::spawn(async move {
         if let Err(e) = db_conn.await {
-            eprintln!("Connection error: {}", e);
+            eprintln!("Connection error: {e}");
         }
     });
 
@@ -45,6 +45,6 @@ async fn main() {
     let addr = SocketAddr::from((CONFIG.ip, CONFIG.http_port));
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
 
-    tracing::debug!("Server listening on {}", addr);
+    tracing::info!("Server listening on {addr}");
     axum::serve(listener, search_app).await.unwrap();
 }

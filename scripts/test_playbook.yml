@@ -1,0 +1,56 @@
+---
+- name: Setup nginx
+  hosts: nginx
+  tasks:
+    - name: Update apt and install aptitude
+      ansible.builtin.apt:
+        name: aptitude
+        state: present
+        update_cache: true
+
+    - name: Add Docker GPG apt Key
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker Repository
+      ansible.builtin.apt_repository:
+        repo: deb https://download.docker.com/linux/ubuntu focal stable
+        state: present
+
+    - name: Install docker-ce and python3-docker
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - python3-docker
+        state: present
+        update_cache: true
+
+    - name: Copy echo binary
+      ansible.builtin.copy:
+        src: ../target/release/echo
+        dest: /root
+        mode: '0755'
+
+    - name: Copy nginx conf
+      ansible.builtin.copy:
+        src: ./nginx.conf
+        dest: /root/nginx.conf
+        mode: '0755'
+    - name: Set file limits for root user
+      pam_limits:
+        #domain: '*'
+        domain: root
+        limit_type: '-'
+        limit_item: nofile
+        value: 64000
+
+    - name: start nginx loadbalancer
+      community.docker.docker_container:
+        name: nginx
+        image: nginx:latest
+        network_mode: "host"
+        volumes:
+          - /root/nginx.conf:/etc/nginx/nginx.conf
+        restart: true
+        restart_policy: always

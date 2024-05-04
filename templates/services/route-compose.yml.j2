@@ -9,12 +9,20 @@ services:
       - ./config.toml:/config.toml
     depends_on:
       - osrm-backend
+    ulimits:
+      nofile:
+          soft: 65536
+          hard: 65536
 
   osrm-backend:
     image: ghcr.io/project-osrm/osrm-backend
     command: osrm-routed --algorithm mld /data/{{ REGION }}.osrm
     volumes:
       - /data/osrm:/data
+    ulimits:
+      nofile:
+          soft: 65536
+          hard: 65536
 
   cache: 
     image: redis:alpine
@@ -23,6 +31,10 @@ services:
       - "6379:6379"
     volumes:
       - redis-db:/data
+    ulimits:
+      nofile:
+          soft: 65536
+          hard: 65536
 
 volumes:
   redis-db:

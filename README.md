@@ -13,15 +13,14 @@ There are two ways to run as a mono service or distributed service. For both you
 ### Mono service 
 
 1. Run `./scripts/install_docker.sh` to install docker and docker-volume-snapshot
-2. Run `./scripts/install_rust.sh` to install rust
+2. Run `./scripts/install_rust.sh` to install Rust
 3. Run `cargo build --release` to build services
-4. Create `.env` file (see example)
-4. Run `docker compose up -d` to run the containers 
+4. Run `docker compose up -d` to run the containers.
+  * Create `.env` file if you want (see example)
+  * **Make sure to rebuild the containers** (`docker compose up --build`?? or
+  delete all images) to see changes in the Rust code or config.
 
-scp -i ~/.ssh/ssh -r /data/osrm/us-northeast.osrm.fileIndex root@194.113.75.155:/data/osrm/us-northeast.osrm.fileIndex
-
-
-Make sure you have a `config.toml` in root directory.
+Make sure you have a `config.toml` in the root directory.
 
 ### Distributed service 
 
