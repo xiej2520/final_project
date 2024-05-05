@@ -1,5 +1,4 @@
 use std::net::SocketAddr;
-use std::sync::{atomic::AtomicU32, Arc};
 
 use axum::{extract::Request, middleware::Next};
 use axum::{
@@ -79,13 +78,14 @@ async fn main() {
         })
         .unwrap();
 
-    let lie = Arc::new(AtomicU32::new(0));
-
     let restricted_app = Router::new()
         .nest("/api", search_router::new_router().with_state(db_client))
         .nest("/api", address_router::new_router().with_state(db_client))
         .nest("/", convert_router::new_router())
-        .nest("/api", route_router::new_router().with_state((route_client, lie)))
+        .nest(
+            "/api",
+            route_router::new_router().with_state(route_client),
+        )
         .layer(axum::middleware::from_fn(login_gateway));
 
     let mut app = Router::new()
@@ -93,8 +93,8 @@ async fn main() {
         .nest("/api", user_router::new_router().with_state(user_store))
         .nest("/", tile_router::new_router().with_state(tile_client))
         .nest("/", turn_router::new_router().with_state(turn_client))
-        .nest("/", restricted_app) 
-        .layer(session_layer); 
+        .nest("/", restricted_app)
+        .layer(session_layer);
 
     if !cfg!(feature = "disable_logs") {
         app = app

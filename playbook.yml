@@ -99,36 +99,36 @@
         dest: /bin
         mode: '0755'
 
-    - name: Copy osm-data
-      ansible.posix.synchronize:
-        src: /data/osm-data.tar.zst
-        dest: /data/osm-data.tar.zst
-
-    - name: Decompress osm-data
-      ansible.builtin.command:
-        cmd: zstd -d /data/osm-data.tar.zst -o /data/osm-data.tar
-        creates: /data/osm-data.tar
-
-    - name: Restore osm-data
-      ansible.builtin.command:
-        cmd: docker-volume-snapshot restore /data/osm-data.tar osm-data
-        creates: /var/lib/docker/volumes/osm-data/_data
-
-    - name: Copy compose file
-      ansible.builtin.template:
-        src: ./templates/services/search-compose.yml.j2
-        dest: ./compose.yml
-        mode: '0644'
-
-    - name: Stop docker compose
-      community.docker.docker_compose_v2:
-        project_src: .
-        state: absent
-
-    - name: Start search microservice
-      community.docker.docker_compose_v2:
-        project_src: .
-        state: present
+#    - name: Copy osm-data
+#      ansible.posix.synchronize:
+#        src: /data/osm-data.tar.zst
+#        dest: /data/osm-data.tar.zst
+#
+#    - name: Decompress osm-data
+#      ansible.builtin.command:
+#        cmd: zstd -d /data/osm-data.tar.zst -o /data/osm-data.tar
+#        creates: /data/osm-data.tar
+#
+#    - name: Restore osm-data
+#      ansible.builtin.command:
+#        cmd: docker-volume-snapshot restore /data/osm-data.tar osm-data
+#        creates: /var/lib/docker/volumes/osm-data/_data
+#
+#    - name: Copy compose file
+#      ansible.builtin.template:
+#        src: ./templates/services/search-compose.yml.j2
+#        dest: ./compose.yml
+#        mode: '0644'
+#
+#    - name: Stop docker compose
+#      community.docker.docker_compose_v2:
+#        project_src: .
+#        state: absent
+#
+#    - name: Start search microservice
+#      community.docker.docker_compose_v2:
+#        project_src: .
+#        state: present
 
 - name: Setup tiles microservice
   hosts: tiles
@@ -145,20 +145,20 @@
         dest: /bin
         mode: '0755'
 
-    - name: Copy tiles-cache
-      ansible.posix.synchronize:
-        src: /data/tiles-cache.tar.zst
-        dest: /data/tiles-cache.tar.zst
-
-    - name: Decompress tiles-cache
-      ansible.builtin.command:
-        cmd: zstd -d /data/tiles-cache.tar.zst -o /data/tiles-cache.tar
-        creates: /data/tiles-cache.tar
-
-    - name: Restore tilles-cache
-      ansible.builtin.command:
-        cmd: docker-volume-snapshot restore /data/tiles-cache.tar tiles-cache
-        creates: /var/lib/docker/volumes/tiles-cache/_data
+#    - name: Copy tiles-cache
+#      ansible.posix.synchronize:
+#        src: /data/tiles-cache.tar.zst
+#        dest: /data/tiles-cache.tar.zst
+#
+#    - name: Decompress tiles-cache
+#      ansible.builtin.command:
+#        cmd: zstd -d /data/tiles-cache.tar.zst -o /data/tiles-cache.tar
+#        creates: /data/tiles-cache.tar
+#
+#    - name: Restore tiles-cache
+#      ansible.builtin.command:
+#        cmd: docker-volume-snapshot restore /data/tiles-cache.tar tiles-cache
+#        creates: /var/lib/docker/volumes/tiles-cache/_data
 
     - name: Copy tiles data
       ansible.posix.synchronize:
@@ -207,15 +207,15 @@
         dest: /bin
         mode: '0755'
 
-    - name: Copy redis-db
-      ansible.posix.synchronize:
-        src: /data/redis-db.tar
-        dest: /data/redis-db.tar
+    #- name: Copy redis-db
+    #  ansible.posix.synchronize:
+    #    src: /data/redis-db.tar
+    #    dest: /data/redis-db.tar
 
-    - name: Restore redis-db
-      ansible.builtin.command:
-        cmd: docker-volume-snapshot restore /data/redis-db.tar redis-db
-        creates: /var/lib/docker/volumes/redis-db/_data
+    #- name: Restore redis-db
+    #  ansible.builtin.command:
+    #    cmd: docker-volume-snapshot restore /data/redis-db.tar redis-db
+    #    creates: /var/lib/docker/volumes/redis-db/_data
 
     - name: Copy OSRM data
       ansible.posix.synchronize:

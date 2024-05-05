@@ -36,17 +36,17 @@ struct Step {
     distance: f64,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct Coordinates {
-    lat: f64,
-    lon: f64,
+    pub lat: f64,
+    pub lon: f64,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PathNodeObject {
-    description: String,
-    coordinates: Coordinates,
-    distance: f64,
+    pub description: String,
+    pub coordinates: Coordinates,
+    pub distance: f64,
 }
 
 impl From<Step> for PathNodeObject {

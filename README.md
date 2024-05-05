@@ -2,25 +2,46 @@
 
 ## Solution
 
-There are two ways to run as a mono service or distributed service. For both you must import data first!
+There are two ways to run as a mono service or distributed service.
+For both you have to import the data into the tileserver, database, and osrm
+formats, which can be copied to the distributed nodes.
 
 ### Import data
 
 1. Run `./scripts/import.sh --all --region <region>` to import data
    * Note: osrm requires a lot of memory to create the routing data and will
-   crash if there is not enough memory
+   crash if there is not enough memory. `us-northeast` required >12.8 GB.
+   * Check the usage flags to import data for services individually.
+
+#### Export data
+
+`import.sh` should have created compressed versions of the imported data to be
+copied to downstream nodes in the `/data` directory. Check `./scripts/export.sh`
+for the commands to manually do this.
 
 ### Mono service 
 
+To run the service with a single server binary, useful for testing:
+
 1. Run `./scripts/install_docker.sh` to install docker and docker-volume-snapshot
 2. Run `./scripts/install_rust.sh` to install Rust
-3. Run `cargo build --release` to build services
-4. Run `docker compose up -d` to run the containers.
+3. Run `cargo build --release` to build the server
+4. `cd` to `./scripts/monoservice` and run `docker compose up -d` to run the
+containers.
+  Provide the region (`REGION=us-northeast docker compose up -d`) or
   * Create `.env` file if you want (see example)
-  * **Make sure to rebuild the containers** (`docker compose up --build`?? or
-  delete all images) to see changes in the Rust code or config.
+5. Run the rust server `cargo run --release`.
+  Make sure you have a `config.toml` (see example) in the root directory.
 
-Make sure you have a `config.toml` in the root directory.
+### Microservices on one machine
+
+1. Run `./scripts/install_docker.sh` to install docker and docker-volume-snapshot
+2. `cd` to `./scripts/microservices_local` and run `docker compose up -d` to run
+the containers.
+  * Make sure you have a `config.toml` (see example) in the root directory, this
+  will be copied into the services' docker images.
+  * **Make sure to rebuild the images** (`docker compose up --build`?? or
+  delete all images) to see changes in the Rust code or config.
 
 ### Distributed service 
 
@@ -28,21 +49,12 @@ Make sure you have a `config.toml` in the root directory.
 2. Run `cargo build --release` to build services
 3. Run `python3 -m pip install --user ansible` to install ansible
 4. Create `inventory.ini` file (see example)
-5. Run `ansible-playbook -i inventory.ini -e "REGION=<region> DOMAIN=<domain> SUBMISSION_ID=<submission_id>" playbook.yml` to deploy using ansible
+5. Run `ansible-playbook -i inventory.ini -e "REGION=<region> DOMAIN=<domain> SUBMISSION_ID=<submission_id>" playbook.yml`
+to deploy using ansible
+   * Also include `--private-key {key-file}`
 
-```shell
-ansible-playbook -i inventory.ini -e "REGION=us-northeast DOMAIN=not-invented-here.cse356.compas.cs.stonybrook.edu SUBMISSION_ID=65b54162aa2cfc5a3dea55fe" playbook.yml --private-key
-```
-
-Make sure you have a `inventory.ini` in root directory. If you'd like you can also create a `extra_vars.yml` file to store the extra vars. 
-
-### To copy to remote machine
-
-* Run `./scripts/import.sh <region>` to import data on local machine
-* Copy `/data` directory to remote machine.
-* Use [docker-volume-snapshot](https://github.com/junedkhatri31/docker-volume-snapshot)
-to transfer `osm-data` volume to remote machine.
-* Run `REGION=<region> docker compose up -d` to run services on remote.
+Make sure you have a `inventory.ini` in root directory.
+If you'd like you can also create a `extra_vars.yml` file to store the extra vars. 
 
 ## Config
 
@@ -59,11 +71,18 @@ relay_port = 11587
 
 # urls for services (trailing slash significant!)
 db_url = "postgres://renderer:renderer@database:5432/gis"
-tile_url = "http://tileserver:8080/styles/osm-bright/256/"
 turn_url = "http://tileserver:8080/styles/osm-bright/static/"
 route_url = "http://osrm-backend:5000/route/v1/driving/"
 
-cache_url = "redis://cache:6379"
+# nginx will serve this instead, this is just for testing (needed in config still)
+tile_url = "http://tileserver:8080/styles/osm-bright/256/"
+# redis cache attempt
+# cache_url = "redis://cache:6379"
+# monoservice urls
+db_url = "postgresql://renderer:renderer@localhost:5432/gis"
+cache_url = "redis://localhost:6379"
+turn_url = "http://localhost:8081/styles/osm-bright/static/"
+route_url = "http://localhost:5000/route/v1/driving/"
 ```
 
 * Compile with `disable_email` flag to disable sending emails for verification.
@@ -77,7 +96,7 @@ cargo +nightly run -F disable_email -F disable_auth
 
 ## dotenv
 
-```
+```env
 REGION=monaco-latest
 
 AUTH_PORT=8000
@@ -88,8 +107,9 @@ TILES_PORT=8003
 
 ## Inventory
 
+Change the ips to be the servers you're deploying to.
+
 ```ini
-# there should only be **ONE** nginx and auth, on the **SAME** host
 nginx ansible_user=root ansible_host=0.0.0.0
 
 [auth]

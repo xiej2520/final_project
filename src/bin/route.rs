@@ -1,4 +1,4 @@
-use std::{net::SocketAddr, sync::{atomic::AtomicU32, Arc}};
+use std::net::SocketAddr;
 
 use axum::Router;
 
@@ -20,10 +20,9 @@ async fn main() {
     init_logging();
 
     let route_client = HttpClient::new(CONFIG.route_url).unwrap();
-    let lie = Arc::new(AtomicU32::new(0));
 
     let mut route_app =
-        Router::new().nest("/api", route_router::new_router().with_state((route_client, lie)));
+        Router::new().nest("/api", route_router::new_router().with_state(route_client));
 
     if !cfg!(feature = "disable_logs") {
         route_app = route_app.layer(

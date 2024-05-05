@@ -7,7 +7,7 @@ services:
       - type: bind
         source: nginx.conf
         target: /etc/nginx/nginx.conf
-      - ../../../static:/usr/share/nginx/html
+      - ../../static:/usr/share/nginx/html
     depends_on:
       - auth
       - search
@@ -16,7 +16,9 @@ services:
 
   # auth microservice
   auth:
-    build: .
+    build:
+      context: ../../
+      dockerfile: ./scripts/microservices_local/Dockerfile
     image: server
     command: auth
     ports:
@@ -24,7 +26,9 @@ services:
 
   # search microservice
   search:
-    build: .
+    build:
+      context: ../../
+      dockerfile: ./scripts/microservices_local/Dockerfile
     image: server
     command: search
     ports:
@@ -47,7 +51,9 @@ services:
 
   # tiles microservice
   tiles:
-    build: .
+    build:
+      context: ../../
+      dockerfile: ./scripts/microservices_local/Dockerfile
     image: server
     command: tiles
     ports:
@@ -62,7 +68,9 @@ services:
 
   # route microservice
   route:
-    build: .
+    build:
+      context: ../../
+      dockerfile: ./scripts/microservices_local/Dockerfile
     image: server
     command: route 
     ports:
@@ -75,16 +83,16 @@ services:
     volumes:
       - /data/osrm:/data
       
-  cache: 
-    image: redis:alpine
-    command: redis-server --appendonly no --maxmemory 8gb --save 60 1 --maxmemory-policy allkeys-lru
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-db:/data
+  #cache: 
+  #  image: redis:alpine
+  #  command: redis-server --appendonly no --maxmemory 8gb --save 60 1 --maxmemory-policy allkeys-lru
+  #  ports:
+  #    - "6379:6379"
+  #  volumes:
+  #    - redis-db:/data
 
 volumes:
-  redis-db:
-    external: true
+  #redis-db:
+  #  external: true
   osm-data:
     external: true

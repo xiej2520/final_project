@@ -24,18 +24,18 @@ services:
           soft: 65536
           hard: 65536
 
-  cache: 
-    image: redis:alpine
-    command: redis-server --appendonly no --maxmemory 16gb --save 300 1 --maxmemory-policy allkeys-lru
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-db:/data
-    ulimits:
-      nofile:
-          soft: 65536
-          hard: 65536
+  #cache: 
+  #  image: redis:alpine
+  #  command: redis-server --appendonly no --maxmemory 16gb --save 300 1 --maxmemory-policy allkeys-lru
+  #  ports:
+  #    - "6379:6379"
+  #  volumes:
+  #    - redis-db:/data
+  #  ulimits:
+  #    nofile:
+  #        soft: 65536
+  #        hard: 65536
 
-volumes:
-  redis-db:
-    external: true
+#volumes:
+#  redis-db:
+#    external: true

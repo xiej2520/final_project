@@ -5,7 +5,7 @@ services:
       - "80:80"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
-      - tiles-cache:/var/cache/nginx/tileserver
+      #- tiles-cache:/var/cache/nginx/tileserver
     depends_on: 
       - tiles
       - tileserver
@@ -41,6 +41,6 @@ services:
           soft: 65536
           hard: 65536
 
-volumes:
-  tiles-cache:
-    external: true
+#volumes:
+#  tiles-cache:
+#    external: true

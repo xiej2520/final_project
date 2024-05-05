@@ -17,7 +17,7 @@ pub async fn handler(Path(s): Path<String>) -> impl IntoResponse {
 async fn main() {
     init_logging();
 
-    let addr = SocketAddr::from(([0,0,0,0], 8000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 8000));
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
 
     tracing::info!("Server listening on {addr}");

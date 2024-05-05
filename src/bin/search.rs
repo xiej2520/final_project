@@ -26,7 +26,7 @@ async fn main() {
     let db_client = Box::leak(Box::new(db_client));
     tokio::spawn(async move {
         if let Err(e) = db_conn.await {
-            eprintln!("Connection error: {e}");
+            tracing::error!("Connection error: {e}");
         }
     });
 

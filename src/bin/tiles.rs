@@ -23,10 +23,6 @@ async fn main() {
 
     let turn_client = HttpClient::new(CONFIG.turn_url).unwrap();
 
-    //let redis_client = redis::Client::open(CONFIG.cache_url).unwrap();
-    //let redis_conn = ConnectionManager::new(redis_client)
-    //    .await
-    //    .expect("Failed to connect to redis server");
     let mut tiles_app = Router::new()
         .nest("/", turn_router::new_router().with_state(turn_client))
         .nest("/", convert_router::new_router());

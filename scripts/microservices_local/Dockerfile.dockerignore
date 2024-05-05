@@ -1,0 +1,6 @@
+# Ignore everything
+*
+
+# allow src and toml
+!src
+!*.toml
