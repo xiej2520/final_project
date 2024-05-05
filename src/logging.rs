@@ -63,15 +63,21 @@ pub fn init_logging() {
         //.with_thread_names(true)
         //.pretty()
         ;
+
     let local_log = tracing_subscriber::fmt::layer()
         .with_writer(log_appender)
-        .with_writer(std::io::stderr)
-        .event_format(log_format)
+        .event_format(log_format.clone())
         .with_filter(LevelFilter::DEBUG)
         //.with_filter(LevelFilter::INFO)
         //.with_filter(LevelFilter::ERROR);
         //.with_filter(tracing_subscriber::filter::LevelFilter::ERROR)
         ;
-    let registry = tracing_subscriber::registry().with(local_log);
+    let stderr_log = tracing_subscriber::fmt::layer()
+        .with_writer(std::io::stderr)
+        .event_format(log_format)
+        .with_filter(LevelFilter::DEBUG);
+    let registry = tracing_subscriber::registry()
+        .with(local_log)
+        .with(stderr_log);
     tracing::subscriber::set_global_default(registry).expect("Failed to enable logs");
 }
