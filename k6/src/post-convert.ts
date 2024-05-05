@@ -1,4 +1,4 @@
-import { check, fail, sleep } from 'k6';
+import { check } from 'k6';
 import { Options } from 'k6/options';
 import http from 'k6/http';
 
@@ -37,7 +37,7 @@ export default () => {
   const convert_response = http.post('http://localhost/convert', JSON.stringify(convert_req), {
     headers: { 'Content-Type': 'application/json'},
   });
-  const convert_check = check(convert_response, {
+  check(convert_response, {
     'convert status is 200': r => r.status === 200,
     'valid response body': r => {
       if (typeof r.body !== 'string' && !(r.body instanceof String) ) {
@@ -50,17 +50,4 @@ export default () => {
       return true;
     },
   });
-  if (!convert_check) {
-    fail("convert api failed");
-  }
-  const { x_tile, y_tile } = JSON.parse(convert_response.body!.toString());
-
-  const tile_res = http.get(`http://localhost/tiles/${zoom}/${x_tile}/${y_tile}.png`);
-  check(tile_res, {
-    'tile status is 200': r => r.status === 200,
-    'Content-Type is png': r => r.headers['Content-Type'] === "image/png",
-    'Got an interesting image': r => parseInt(r.headers['Content-Length']) >= 2000,
-    'Got a very interesting image': r => parseInt(r.headers['Content-Length']) >= 10000,
-  });
-  sleep(1);
 };

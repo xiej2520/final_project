@@ -15,10 +15,8 @@ export const options = {
 };
 
 export default () => {
-
   const res = http.get(`http://209.151.149.253/echo`);
   check(res, {
     'status is 200': r => r.status === 200,
   });
-  //sleep(1);
 };

@@ -36,5 +36,4 @@ export default () => {
     'Got an interesting image': r => parseInt(r.headers['Content-Length']) >= 2000,
     'Got a very interesting image': r => parseInt(r.headers['Content-Length']) >= 10000,
   });
-  //sleep(1);
 };

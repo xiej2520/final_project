@@ -1,4 +1,4 @@
-import { sleep, check } from 'k6';
+import { check } from 'k6';
 import { Options } from 'k6/options';
 import http from 'k6/http';
 
@@ -12,5 +12,4 @@ export default () => {
   check(res, {
     'status is 401': () => res.status === 401,
   });
-  sleep(1);
 };

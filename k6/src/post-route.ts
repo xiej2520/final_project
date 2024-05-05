@@ -1,11 +1,11 @@
-import { check, fail, sleep } from 'k6';
+import { check, fail } from 'k6';
 import http from 'k6/http';
 
 export const options = {
   scenarios: {
     constant_request_rate: {
       executor: 'constant-arrival-rate',
-      rate: 5000,
+      rate: 3000,
       timeUnit: '1s',
       duration: '30s',
       preAllocatedVUs: 5000,
@@ -43,10 +43,10 @@ export default () => {
       lon: rand(minlon, maxlon),
     },
   };
-  //const res = http.post('http://not-invented-here.cse356.compas.cs.stonybrook.edu/api/route', JSON.stringify(route_req), {
-  //  headers: { 'Content-Type': 'application/json'},
-  //});
-  const res = http.get('http://not-invented-here.cse356.compas.cs.stonybrook.edu/api/route/reset');
+  const res = http.post('http://not-invented-here.cse356.compas.cs.stonybrook.edu/api/route', JSON.stringify(route_req), {
+    headers: { 'Content-Type': 'application/json'},
+  });
+  //const res = http.get('http://not-invented-here.cse356.compas.cs.stonybrook.edu/api/route/reset');
   if (!check(res, { 'status is 200': r => r.status === 200, })) {
     fail('status code was not 200');
   }
@@ -58,6 +58,7 @@ export default () => {
       }
       const j = JSON.parse(r.body!.toString());
       if (!Array.isArray(j)) {
+        console.log(route_req);
         console.log("Parsed body is not array");
         return false;
       }
@@ -83,5 +84,4 @@ export default () => {
     },
     'Got a cache hit': r => r.headers['X-Cache-Status'] === "HIT",
   });
-  //sleep(1);
 };

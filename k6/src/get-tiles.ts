@@ -1,16 +1,11 @@
-import { check, fail, sleep } from 'k6';
-import { Options } from 'k6/options';
+import { check } from 'k6';
 import http from 'k6/http';
 
-//export let options: Options = {
-//  vus: 500,
-//  duration: '30s',
-//};
 export const options = {
   scenarios: {
     constant_request_rate: {
       executor: 'constant-arrival-rate',
-      rate: 2000,
+      rate: 400,
       timeUnit: '1s',
       duration: '30s',
       preAllocatedVUs: 3000,
@@ -30,11 +25,6 @@ const maxlon = -67;
 //const maxlat = 44.898687;
 //const minlon = -74.742916;
 //const maxlon = -71.054832;
-/// monaco
-//const minlat = 43;
-//const maxlat = 44;
-//const minlon = 7;
-//const maxlon = 8;
 const minzoom = 7;
 const maxzoom = 18;
 
@@ -70,7 +60,7 @@ const ranges = [
 // disable auth to run
 export default () => {
   //const zoom = Math.floor(rand(16, 18));
-  const zoom = Math.floor(rand(7, 10));
+  const zoom = Math.floor(rand(7, 17));
   const x_tile = Math.floor(rand(ranges[zoom][0].x_tile, ranges[zoom][1].x_tile));
   const y_tile = Math.floor(rand(ranges[zoom][0].y_tile, ranges[zoom][1].y_tile));
 

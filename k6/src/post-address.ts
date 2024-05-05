@@ -46,5 +46,4 @@ export default () => {
   check(j, { 'city': j => typeof j.city === 'string' || j.city instanceof String });
   check(j, { 'state': j => typeof j.state === 'string' || j.state instanceof String });
   check(j, { 'country': j => typeof j.country === 'string' || j.country instanceof String });
-  //sleep(1);
 };
