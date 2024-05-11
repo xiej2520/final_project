@@ -2,9 +2,15 @@
 
 ## Solution
 
-There are two ways to run as a mono service or distributed service.
-For both you have to import the data into the tileserver, database, and osrm
-formats, which can be copied to the distributed nodes.
+This can be run on one machine, as either a monoservice (one server binary on host)
+or split into microservices (separate binaries running in containers). In either
+case, they will communicate with tileserver, database, and osrm routing running
+in Docker containers.
+The project can also be deployed as a distributed service using the ansible
+playbook.
+In any case, you need to import the data into the tileserver, database, and osrm
+formats, which can be copied to the distributed nodes instead of importing on
+each machine.
 
 ### Import data
 
